@@ -39,6 +39,6 @@ plt.xlim(0.8, 10.2) # Extend X-axis to 10
 new_y_max = dac_data_rates_gbps.max() * 1.1 # Calculate new Y max (140 * 1.1 = 154)
 plt.ylim(0, new_y_max)
 
-# Save the plot
+# Show the plot
 plt.show()
-plt.savefig('adc_dac_data_rate_comparison.png')
+
