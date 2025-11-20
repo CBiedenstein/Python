@@ -15,7 +15,7 @@ x_symbols = np.cos(x_radians) + 1j * np.sin(x_radians) # this produces the compl
 n = np.random.randn(num_symbols) + 1j * np.random.randn(num_symbols)/sqrt(2) # AWGN with unity power
 r = x_symbols + n * sqrt(0.01) # noise power of 0.01
 print(r)
-plt.plot(np.real(r), np.imag(r), '.-')
+plt.plot(np.real(r), np.imag(r), '.')
 plt.grid(True)
 plt.show()
 
@@ -23,4 +23,4 @@ plt.show()
 print(type(r[0])) # Check Data type. It will be 128 here as that is the numpy default. must convert to npcomplex64
 r = r.astype(np.complex64)
 print(type(r[0]))
-r.tofile('qpsk_in_noise.iq')
+r.tofile('qpsk_in_noise.sigmf-data')

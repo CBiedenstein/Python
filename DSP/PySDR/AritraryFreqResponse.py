@@ -8,8 +8,8 @@ w = np.linspace(-0.5, 0.5, 500)
 #plt.show()
 
 h = np.fft.ifftshift(np.fft.ifft(np.fft.ifftshift(H)))
-window = np.hamming(len(h))
-h = h * window ## These two lines apply a hamming window thus smoothing the filter response
+#window = np.hamming(len(h))
+#h = h * window ## These two lines apply a hamming window thus smoothing the filter response
 plt.figure('Inverse Taps')
 plt.plot(np.real(h), '-')
 plt.plot(np.imag(h), '-')

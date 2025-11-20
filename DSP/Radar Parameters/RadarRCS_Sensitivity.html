@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radar RCS Sensitivity Calculator</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- Icons ---
+        const Target = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+        );
+        const Download = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        );
+        const Settings = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        );
+        const MapIcon = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+        );
+        const Info = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        );
+
+        // --- Helper Functions ---
+        const getTargetContext = (dbsm) => {
+            if (dbsm < -30) return "Insect";
+            if (dbsm < -20) return "Bird / Bullet";
+            if (dbsm < -10) return "Creeping Drone";
+            if (dbsm < 0)   return "Person / Missile";
+            if (dbsm < 10)  return "Small Fighter / Car";
+            if (dbsm < 20)  return "Large Fighter / Truck";
+            if (dbsm < 40)  return "Corner Reflector / Ship";
+            return "Mountain / Building";
+        };
+
+        const InputGroup = ({ label, name, value, onChange, step="any", subLabel }) => (
+            <div className="mb-3">
+                <div className="flex justify-between items-baseline mb-1">
+                    <label className="text-xs font-medium text-slate-600">{label}</label>
+                    {subLabel && <span className="text-[10px] text-slate-400">{subLabel}</span>}
+                </div>
+                <input 
+                    type="number" 
+                    step={step}
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    className="w-full p-2 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-slate-800"
+                />
+            </div>
+        );
+
+        const Th = ({ children }) => (
+            <th className="p-3 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 bg-slate-50 sticky top-0">
+                {children}
+            </th>
+        );
+
+        const Td = ({ children, className = "" }) => (
+            <td className={`p-3 text-sm border-b border-slate-100 text-slate-700 ${className}`}>
+                {children}
+            </td>
+        );
+
+        // --- Main Application ---
+        function RadarRCSApp() {
+            // Default values from the Python script Example Usage
+            const [params, setParams] = useState({
+                freq_hz: 3.0e9,         // 3.0 GHz
+                pt_watts: 2.0e6,        // 2 MW
+                gain_dbi: 75.0,         // Script passes total_gain (36+39) here
+                bandwidth_hz: 1.6e6,    // 1.6 MHz
+                noise_figure_db: 2.0,   // 2 dB
+                loss_sys_db: 5.0,       // 5 dB
+                required_snr_db: 5.0    // 5 dB
+            });
+
+            // Range configuration in Nautical Miles (nmi)
+            const [rangeConfig, setRangeConfig] = useState({
+                startNmi: 5,
+                endNmi: 200,
+                stepNmi: 5
+            });
+
+            // Physics Constants
+            const C = 299792458;
+            const K = 1.380649e-23;
+            const T0 = 290;
+
+            // derived calculations (System Sensitivity)
+            const metrics = useMemo(() => {
+                // Wavelength
+                const wavelength = C / params.freq_hz;
+
+                // P_min calculation
+                const noise_thermal_watts = K * T0 * params.bandwidth_hz;
+                
+                const nf_linear = Math.pow(10, params.noise_figure_db / 10);
+                const snr_linear = Math.pow(10, params.required_snr_db / 10);
+                const loss_linear = Math.pow(10, params.loss_sys_db / 10);
+                const gain_linear = Math.pow(10, params.gain_dbi / 10);
+
+                const p_min_watts = noise_thermal_watts * nf_linear * snr_linear;
+                const sensitivity_dbm = 10 * Math.log10(p_min_watts * 1000);
+
+                return {
+                    wavelength,
+                    p_min_watts,
+                    sensitivity_dbm,
+                    loss_linear,
+                    gain_linear
+                };
+            }, [params]);
+
+            // Table Data Generation
+            const tableData = useMemo(() => {
+                const rows = [];
+                
+                // Avoid infinite loop if step is 0 or negative
+                const safeStep = rangeConfig.stepNmi > 0 ? rangeConfig.stepNmi : 1;
+                
+                for (let r = rangeConfig.startNmi; r <= rangeConfig.endNmi; r += safeStep) {
+                    const range_nmi = r;
+                    const range_meters = range_nmi * 1000 * 1.852; // nmi to meters
+
+                    // Formula: sigma = (P_min * Loss * (4pi)^3 * R^4) / (Pt * G^2 * lambda^2)
+                    // Note: Python script squares the linear gain (gain_linear**2). 
+                    // If the input was total gain (Tx+Rx), this effectively squares the total gain factor.
+                    // We follow the python script logic exactly here.
+
+                    const numerator = metrics.p_min_watts * metrics.loss_linear * Math.pow(4 * Math.PI, 3) * Math.pow(range_meters, 4);
+                    const denominator = params.pt_watts * Math.pow(metrics.gain_linear, 2) * Math.pow(metrics.wavelength, 2);
+                    
+                    const rcs_m2 = numerator / denominator;
+                    const rcs_dbsm = rcs_m2 > 0 ? 10 * Math.log10(rcs_m2) : -999;
+                    const context = getTargetContext(rcs_dbsm);
+
+                    rows.push({
+                        range_nmi,
+                        range_km: range_nmi * 1.852,
+                        rcs_m2,
+                        rcs_dbsm,
+                        context
+                    });
+                }
+                return rows;
+            }, [params, rangeConfig, metrics]);
+
+            const handleParamChange = (e) => {
+                const { name, value } = e.target;
+                setParams(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
+            };
+
+            const copyToClipboard = () => {
+                const header = "Range (nmi),Range (km),Min RCS (m²),Min RCS (dBsm),Equivalent Target\n";
+                const csvRows = tableData.map(row => 
+                    `${row.range_nmi},${row.range_km.toFixed(2)},${row.rcs_m2.toExponential(4)},${row.rcs_dbsm.toFixed(2)},${row.context}`
+                ).join("\n");
+                
+                const textArea = document.createElement("textarea");
+                textArea.value = header + csvRows;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                alert("Data copied to clipboard as CSV!");
+            };
+
+            return (
+                <div className="flex flex-col h-screen bg-slate-50 text-slate-900 font-sans">
+                    
+                    {/* Header */}
+                    <div className="bg-indigo-900 text-white p-4 shadow-lg flex justify-between items-center shrink-0">
+                        <div className="flex items-center gap-3">
+                            <Target className="text-indigo-300" size={28} />
+                            <div>
+                                <h1 className="text-lg font-bold tracking-tight">Radar Sensitivity Calculator</h1>
+                                <p className="text-xs text-indigo-200">Min Detectable RCS vs Range</p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={copyToClipboard}
+                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-all shadow-sm"
+                        >
+                            <Download size={16} />
+                            Export CSV
+                        </button>
+                    </div>
+
+                    <div className="flex flex-1 overflow-hidden">
+                        
+                        {/* Left Sidebar: Configuration */}
+                        <div className="w-80 bg-white border-r border-slate-200 flex flex-col overflow-y-auto shrink-0 shadow-sm z-10">
+                            
+                            {/* Section: Range Settings */}
+                            <div className="p-5 border-b border-slate-200 bg-slate-50">
+                                <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <MapIcon size={14} />
+                                    Range Setup (nmi)
+                                </h2>
+                                
+                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-600 mb-1">Start (nmi)</label>
+                                        <input type="number" value={rangeConfig.startNmi} onChange={(e) => setRangeConfig({...rangeConfig, startNmi: parseFloat(e.target.value)})} className="w-full p-2 border border-slate-300 rounded text-sm outline-none focus:border-indigo-500 transition-colors" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-600 mb-1">End (nmi)</label>
+                                        <input type="number" value={rangeConfig.endNmi} onChange={(e) => setRangeConfig({...rangeConfig, endNmi: parseFloat(e.target.value)})} className="w-full p-2 border border-slate-300 rounded text-sm outline-none focus:border-indigo-500 transition-colors" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-600 mb-1">Step Size (nmi)</label>
+                                    <input type="number" value={rangeConfig.stepNmi} onChange={(e) => setRangeConfig({...rangeConfig, stepNmi: parseFloat(e.target.value)})} className="w-full p-2 border border-slate-300 rounded text-sm outline-none focus:border-indigo-500 transition-colors" />
+                                </div>
+                            </div>
+
+                            {/* Section: System Parameters */}
+                            <div className="p-5">
+                                <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <Settings size={14} />
+                                    Radar Parameters
+                                </h2>
+                                
+                                <InputGroup label="Frequency (Hz)" name="freq_hz" value={params.freq_hz} onChange={handleParamChange} step="1e8" />
+                                <InputGroup label="Tx Power (Watts)" name="pt_watts" value={params.pt_watts} onChange={handleParamChange} step="1000" />
+                                <InputGroup label="Gain (dBi)" name="gain_dbi" value={params.gain_dbi} onChange={handleParamChange} subLabel="(Total Tx + Rx Gain)" />
+                                <InputGroup label="Bandwidth (Hz)" name="bandwidth_hz" value={params.bandwidth_hz} onChange={handleParamChange} step="1e5" />
+                                <InputGroup label="Noise Figure (dB)" name="noise_figure_db" value={params.noise_figure_db} onChange={handleParamChange} />
+                                <InputGroup label="System Loss (dB)" name="loss_sys_db" value={params.loss_sys_db} onChange={handleParamChange} />
+                                <InputGroup label="Required SNR (dB)" name="required_snr_db" value={params.required_snr_db} onChange={handleParamChange} />
+                            </div>
+
+                            {/* Footer Metrics */}
+                            <div className="mt-auto bg-slate-100 p-4 border-t border-slate-200 text-xs text-slate-600 space-y-2">
+                                <div className="flex justify-between"><span>Min Detectable Signal:</span> <span className="font-mono font-semibold text-slate-800">{metrics.sensitivity_dbm.toFixed(2)} dBm</span></div>
+                                <div className="flex justify-between"><span>Wavelength:</span> <span className="font-mono">{metrics.wavelength.toFixed(3)} m</span></div>
+                            </div>
+                        </div>
+
+                        {/* Main Content */}
+                        <div className="flex-1 flex flex-col min-w-0 bg-slate-50/50">
+                            
+                            <div className="bg-white border-b border-slate-200 p-3 text-sm text-slate-600 flex gap-2 items-center shadow-sm z-10">
+                                <Info size={16} className="text-indigo-500" />
+                                Shows minimum target size required for {params.required_snr_db} dB SNR at various ranges.
+                            </div>
+
+                            <div className="flex-1 overflow-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="bg-white shadow-sm z-10">
+                                        <tr>
+                                            <Th>Range (nmi)</Th>
+                                            <Th>Range (km)</Th>
+                                            <Th>Min RCS (m²)</Th>
+                                            <Th>Min RCS (dBsm)</Th>
+                                            <Th>Typical Target</Th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-200 bg-white">
+                                        {tableData.map((row, idx) => (
+                                            <tr key={idx} className="hover:bg-indigo-50/30 transition-colors group">
+                                                <Td className="font-mono text-indigo-700 font-medium">{row.range_nmi}</Td>
+                                                <Td className="text-slate-500">{row.range_km.toFixed(1)}</Td>
+                                                <Td className="font-mono text-xs">{row.rcs_m2.toExponential(4)}</Td>
+                                                <Td className="font-mono">{row.rcs_dbsm.toFixed(2)}</Td>
+                                                <Td>
+                                                    <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 group-hover:border-indigo-200 group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-colors">
+                                                        {row.context}
+                                                    </span>
+                                                </Td>
+                                            </tr>
+                                        ))}
+                                        {tableData.length === 0 && (
+                                            <tr>
+                                                <td colSpan="5" className="p-12 text-center text-slate-400">
+                                                    No ranges generated. Adjust your step size and bounds.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<RadarRCSApp />);
+    </script>
+</body>
+</html>

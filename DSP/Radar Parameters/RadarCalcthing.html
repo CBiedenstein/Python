@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radar Performance Spreadsheet</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Custom scrollbar for cleaner look */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- Icon Components (Inline for standalone usage) ---
+        const Activity = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        );
+        const Download = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        );
+        const Calculator = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="14"></line><line x1="8" y1="14" x2="8" y2="14"></line><line x1="12" y1="14" x2="12" y2="14"></line><line x1="16" y1="18" x2="16" y2="18"></line><line x1="8" y1="18" x2="8" y2="18"></line><line x1="12" y1="18" x2="12" y2="18"></line></svg>
+        );
+        const Settings = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        );
+        const Info = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        );
+        const AlertCircle = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        );
+
+        // --- Sub-components ---
+        const InputGroup = ({ label, name, value, onChange, step="any" }) => (
+            <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+                <input 
+                    type="number" 
+                    step={step}
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    className="w-full p-2 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                />
+            </div>
+        );
+
+        const Th = ({ children }) => (
+            <th className="p-3 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 bg-slate-50 sticky top-0">
+                {children}
+            </th>
+        );
+
+        const Td = ({ children, className = "" }) => (
+            <td className={`p-3 text-sm border-b border-slate-100 ${className}`}>
+                {children}
+            </td>
+        );
+
+        // --- Main Application ---
+        function RadarApp() {
+            const [params, setParams] = useState({
+                freq_hz: 3.0e9,
+                pt_watts: 2.0e6,
+                gt_dbi: 36.0,
+                gr_dbi: 39.0,
+                loss_sys_db: 5.0,
+                bandwidth_hz: 1.6e6,
+                noise_figure_db: 2.0,
+                required_snr_db: 13.0,
+            });
+
+            const [rangeConfig, setRangeConfig] = useState({
+                startKm: 10,
+                endKm: 400,
+                stepKm: 10
+            });
+
+            const [rcsConfig, setRcsConfig] = useState({
+                valuesStr: "0.1, 1.0, 5.0, 10.0"
+            });
+
+            const C = 299792458;
+            const K = 1.380649e-23;
+            const T0 = 290;
+
+            const systemMetrics = useMemo(() => {
+                const wavelength = C / params.freq_hz;
+                const pt_dbm = 10 * Math.log10(params.pt_watts * 1000);
+                const noise_thermal_watts = K * T0 * params.bandwidth_hz;
+                const noise_thermal_dbm = 10 * Math.log10(noise_thermal_watts * 1000);
+                const mds_dbm = noise_thermal_dbm + params.noise_figure_db;
+                const sensitivity_dbm = mds_dbm + params.required_snr_db;
+
+                return {
+                    wavelength,
+                    pt_dbm,
+                    noise_thermal_dbm,
+                    mds_dbm,
+                    sensitivity_dbm
+                };
+            }, [params]);
+
+            const tableData = useMemo(() => {
+                const data = [];
+                const rcsList = rcsConfig.valuesStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+                
+                for (let r = rangeConfig.startKm; r <= rangeConfig.endKm; r += rangeConfig.stepKm) {
+                    const range_meters = r * 1000;
+                    const numerator = Math.pow(4 * Math.PI, 3) * Math.pow(range_meters, 4);
+                    const denominator = Math.pow(systemMetrics.wavelength, 2);
+                    const path_loss_linear = numerator / denominator;
+                    const path_loss_db = 10 * Math.log10(path_loss_linear);
+
+                    rcsList.forEach(rcs => {
+                        const rcs_dbsm = 10 * Math.log10(rcs);
+                        const pr_dbm = (systemMetrics.pt_dbm + params.gt_dbi + params.gr_dbi + rcs_dbsm) 
+                                    - params.loss_sys_db - path_loss_db;
+                        
+                        const snr = pr_dbm - systemMetrics.mds_dbm;
+                        const detected = snr >= params.required_snr_db;
+                        const margin = snr - params.required_snr_db;
+
+                        data.push({
+                            range_km: r,
+                            rcs_m2: rcs,
+                            path_loss_db: path_loss_db,
+                            pr_dbm: pr_dbm,
+                            snr_db: snr,
+                            detected: detected,
+                            margin: margin
+                        });
+                    });
+                }
+                return data;
+            }, [params, rangeConfig, rcsConfig, systemMetrics]);
+
+            const handleParamChange = (e) => {
+                const { name, value } = e.target;
+                setParams(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
+            };
+
+            const copyToClipboard = () => {
+                const header = "Range (km),RCS (m²),Path Loss (dB),Pr (dBm),SNR (dB),Status,Margin (dB)\n";
+                const rows = tableData.map(row => 
+                    `${row.range_km},${row.rcs_m2},${row.path_loss_db.toFixed(2)},${row.pr_dbm.toFixed(2)},${row.snr_db.toFixed(2)},${row.detected ? 'DETECTED' : 'MISSED'},${row.margin.toFixed(2)}`
+                ).join("\n");
+                
+                const textArea = document.createElement("textarea");
+                textArea.value = header + rows;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                alert("Data copied to clipboard as CSV!");
+            };
+
+            return (
+                <div className="flex flex-col h-screen bg-slate-50 text-slate-900 font-sans">
+                    <div className="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center shrink-0">
+                        <div className="flex items-center gap-3">
+                            <Activity className="text-emerald-400" size={24} />
+                            <div>
+                                <h1 className="text-lg font-bold">Radar Performance Spreadsheet</h1>
+                                <p className="text-xs text-slate-400">Interactive Range & MDS Calculator</p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={copyToClipboard}
+                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
+                        >
+                            <Download size={16} />
+                            Copy CSV
+                        </button>
+                    </div>
+
+                    <div className="flex flex-1 overflow-hidden">
+                        <div className="w-80 bg-white border-r border-slate-200 flex flex-col overflow-y-auto shrink-0">
+                            <div className="p-4 border-b border-slate-200 bg-slate-50/50">
+                                <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Calculator size={14} />
+                                    Simulation Setup
+                                </h2>
+                                <div className="space-y-3">
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-700 mb-1">Start Range (km)</label>
+                                            <input type="number" value={rangeConfig.startKm} onChange={(e) => setRangeConfig({...rangeConfig, startKm: parseFloat(e.target.value)})} className="w-full p-2 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-700 mb-1">Stop Range (km)</label>
+                                            <input type="number" value={rangeConfig.endKm} onChange={(e) => setRangeConfig({...rangeConfig, endKm: parseFloat(e.target.value)})} className="w-full p-2 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-700 mb-1">Step Size (km)</label>
+                                        <input type="number" value={rangeConfig.stepKm} onChange={(e) => setRangeConfig({...rangeConfig, stepKm: parseFloat(e.target.value)})} className="w-full p-2 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-700 mb-1">RCS Values (m²) <span className="text-slate-400 font-normal">(comma sep)</span></label>
+                                        <input type="text" value={rcsConfig.valuesStr} onChange={(e) => setRcsConfig({valuesStr: e.target.value})} className="w-full p-2 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-4">
+                                <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Settings size={14} />
+                                    System Constants
+                                </h2>
+                                <div className="space-y-4">
+                                    <InputGroup label="Frequency (Hz)" name="freq_hz" value={params.freq_hz} onChange={handleParamChange} step="1e8" />
+                                    <InputGroup label="Tx Power (Watts)" name="pt_watts" value={params.pt_watts} onChange={handleParamChange} step="1000" />
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <InputGroup label="Tx Gain (dBi)" name="gt_dbi" value={params.gt_dbi} onChange={handleParamChange} />
+                                        <InputGroup label="Rx Gain (dBi)" name="gr_dbi" value={params.gr_dbi} onChange={handleParamChange} />
+                                    </div>
+                                    <InputGroup label="System Loss (dB)" name="loss_sys_db" value={params.loss_sys_db} onChange={handleParamChange} />
+                                    <InputGroup label="Bandwidth (Hz)" name="bandwidth_hz" value={params.bandwidth_hz} onChange={handleParamChange} step="1e5" />
+                                    <InputGroup label="Noise Figure (dB)" name="noise_figure_db" value={params.noise_figure_db} onChange={handleParamChange} />
+                                    <InputGroup label="Required SNR (dB)" name="required_snr_db" value={params.required_snr_db} onChange={handleParamChange} />
+                                </div>
+                            </div>
+
+                            <div className="mt-auto bg-slate-100 p-4 border-t border-slate-200 text-xs text-slate-600 space-y-1">
+                                <div className="flex justify-between"><span>Wavelength:</span> <span className="font-mono">{systemMetrics.wavelength.toFixed(3)} m</span></div>
+                                <div className="flex justify-between"><span>Tx Power (dBm):</span> <span className="font-mono">{systemMetrics.pt_dbm.toFixed(1)} dBm</span></div>
+                                <div className="flex justify-between"><span>MDS:</span> <span className="font-mono">{systemMetrics.mds_dbm.toFixed(1)} dBm</span></div>
+                                <div className="flex justify-between font-semibold text-slate-800"><span>Req. Sensitivity:</span> <span className="font-mono">{systemMetrics.sensitivity_dbm.toFixed(1)} dBm</span></div>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 flex flex-col min-w-0 bg-slate-50">
+                            <div className="bg-blue-50 border-b border-blue-100 p-3 text-sm text-blue-800 flex gap-2 items-center">
+                                <Info size={16} className="text-blue-500" />
+                                Displaying <strong>{tableData.length}</strong> calculations. Green rows indicate detection based on {params.required_snr_db} dB SNR threshold.
+                            </div>
+
+                            <div className="flex-1 overflow-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="bg-white sticky top-0 shadow-sm z-10">
+                                        <tr>
+                                            <Th>Range (km)</Th>
+                                            <Th>RCS (m²)</Th>
+                                            <Th>Path Loss (dB)</Th>
+                                            <Th>Rx Power (dBm)</Th>
+                                            <Th>SNR (dB)</Th>
+                                            <Th>Margin (dB)</Th>
+                                            <Th>Status</Th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-200 bg-white">
+                                        {tableData.map((row, idx) => (
+                                            <tr key={idx} className={`hover:bg-slate-50 transition-colors ${row.detected ? 'bg-emerald-50/30' : ''}`}>
+                                                <Td className="font-medium text-slate-700">{row.range_km.toFixed(1)}</Td>
+                                                <Td>{row.rcs_m2}</Td>
+                                                <Td>{row.path_loss_db.toFixed(1)}</Td>
+                                                <Td>{row.pr_dbm.toFixed(1)}</Td>
+                                                <Td className={row.snr_db > 0 ? "text-slate-700" : "text-red-500"}>{row.snr_db.toFixed(2)}</Td>
+                                                <Td className={row.margin >= 0 ? "text-emerald-600 font-semibold" : "text-red-500"}>
+                                                    {row.margin > 0 ? '+' : ''}{row.margin.toFixed(1)}
+                                                </Td>
+                                                <Td>
+                                                    {row.detected ? (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">DETECTED</span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-500">MISSED</span>
+                                                    )}
+                                                </Td>
+                                            </tr>
+                                        ))}
+                                        {tableData.length === 0 && (
+                                            <tr>
+                                                <td colSpan="7" className="p-8 text-center text-slate-400">
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <AlertCircle size={32} />
+                                                        <p>No data generated. Check your range and RCS settings.</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<RadarApp />);
+    </script>
+</body>
+</html>
