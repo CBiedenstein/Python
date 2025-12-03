@@ -49,7 +49,7 @@ while i_out < len(samples) and i_in+16 < len(samples):
     mu = mu - np.floor(mu) # remove the integer part of mu
     i_out += 1 #increment output index
 out = out[2:i_out] # remove the first two, and anything after i_out (that was never filled out)
-#samples = out # only inlcude this line for connection to the costas loop 
+samples = out # only inlcude this line for connection to the costas loop 
 
 
 
