@@ -1,0 +1,32 @@
+# TPS-70 Ground-Based Air Surveillance Radar
+# 3D long-range transportable radar
+
+name: "TPS-70"
+description: "TPS-70 3D Transportable Air Surveillance Radar"
+category: "Military Surveillance"
+manufacturer: "Lockheed Martin"
+
+# Transmitter - S-Band configuration
+frequency_hz: 2900000000.0  # 2.9 GHz (S-Band)
+peak_power_w: 1400000.0     # 1.4 MW peak power
+
+# Antenna
+tx_gain_dbi: 34.0           # Transmit antenna gain
+rx_gain_dbi: 34.0           # Receive antenna gain
+beam_count: 1
+
+# Receiver
+bandwidth_hz: 1000000.0     # 1.0 MHz
+noise_figure_db: 3.0        # Typical LNA
+
+# System
+system_loss_db: 6.0         # System losses
+required_snr_db: 10.0       # Detection threshold
+
+notes: |
+  TPS-70 is a 3D transportable surveillance radar.
+  Provides air surveillance and tracking capability.
+  Can be deployed in multiple configurations.
+  Instrumented range approximately 240 nmi.
+
+beam_config: null

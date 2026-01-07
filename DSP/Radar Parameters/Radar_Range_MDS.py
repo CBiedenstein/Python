@@ -94,7 +94,7 @@ def calculate_radar_performance(
 # --- Example Usage ---
 calculate_radar_performance(
     freq_hz=3.0e9,              # 3.0 GHz (S-Band)
-    pt_watts=2e6,               # 2 MW Watts
+    pt_watts=300e3,              # 2 MW Watts
     gt_dbi=36.0,                # 36 dBi Tx Gain
     gr_dbi=39.0,                # 39 dBi Rx Gain
     range_meters=240e3*1.852,   # 170 nmi

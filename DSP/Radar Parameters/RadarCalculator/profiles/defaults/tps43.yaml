@@ -1,0 +1,81 @@
+# TPS-43 Tactical Air Defense Radar
+# 3D long-range surveillance radar
+
+name: "TPS-43"
+description: "TPS-43 3D Tactical Air Defense Radar (Solid State Upgrade Configuration)"
+category: "Military Surveillance"
+manufacturer: "Northrop Grumman"
+
+# Transmitter - Solid State Upgrade Configuration
+frequency_hz: 2900000000.0  # 2.9 GHz (S-Band, 2.9-3.1 GHz typical)
+peak_power_w: 2400000.0     # 2.4 MW peak
+
+# Antenna - Planar Array
+tx_gain_dbi: 36.0           # Transmit antenna gain
+rx_gain_dbi: 39.0           # Receive antenna gain (Beam 1)
+beam_count: 6
+
+# Receiver
+bandwidth_hz: 1600000.0     # 1.6 MHz (matched to ~0.6 us pulse)
+noise_figure_db: 2.0        # Low noise amplifier
+
+# System
+system_loss_db: 5.0         # Cable, waveguide, processing losses
+required_snr_db: 5.0        # Detection threshold
+
+notes: |
+  TPS-43 is a transportable 3D tactical radar used for air defense.
+  This configuration represents the solid-state power amplifier upgrade.
+  The radar uses 6 stacked receive beams for elevation coverage.
+  Beam 1 (lowest elevation) has the highest gain at 39 dBi.
+
+# Beam-specific receive gains (dBi)
+beam_config:
+  beams:
+    - name: "Beam 1"
+      rx_gain_dbi: 39.0
+      elevation_deg: 0.5
+    - name: "Beam 2"
+      rx_gain_dbi: 38.0
+      elevation_deg: 2.0
+    - name: "Beam 3"
+      rx_gain_dbi: 37.0
+      elevation_deg: 5.0
+    - name: "Beam 4"
+      rx_gain_dbi: 34.0
+      elevation_deg: 10.0
+    - name: "Beam 5"
+      rx_gain_dbi: 32.0
+      elevation_deg: 18.0
+    - name: "Beam 6"
+      rx_gain_dbi: 32.0
+      elevation_deg: 28.0
+
+  # Transmit power distribution by channel
+  tx_power_distribution:
+    - channel: 1
+      percentage: 15.66
+    - channel: 2
+      percentage: 17.02
+    - channel: 3
+      percentage: 14.18
+    - channel: 4
+      percentage: 10.72
+    - channel: 5
+      percentage: 12.38
+    - channel: 6
+      percentage: 9.36
+    - channel: 7
+      percentage: 6.03
+    - channel: 8
+      percentage: 4.55
+    - channel: 9
+      percentage: 2.93
+    - channel: 10
+      percentage: 2.21
+    - channel: 11
+      percentage: 1.42
+    - channel: 12
+      percentage: 2.10
+    - channel: 13
+      percentage: 1.35

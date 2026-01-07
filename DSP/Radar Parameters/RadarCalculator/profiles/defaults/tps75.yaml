@@ -1,0 +1,32 @@
+# TPS-75 Tactical Air Control Radar
+# Long-range 3D surveillance and tracking radar
+
+name: "TPS-75"
+description: "TPS-75 Tactical Air Control System Radar"
+category: "Military Surveillance"
+manufacturer: "Raytheon"
+
+# Transmitter - S-Band
+frequency_hz: 2800000000.0  # 2.8 GHz (S-Band)
+peak_power_w: 2500000.0     # 2.5 MW peak power
+
+# Antenna - Large rotating array
+tx_gain_dbi: 38.0           # Transmit antenna gain
+rx_gain_dbi: 38.0           # Receive antenna gain
+beam_count: 1
+
+# Receiver
+bandwidth_hz: 1500000.0     # 1.5 MHz bandwidth
+noise_figure_db: 2.5        # Low noise figure
+
+# System
+system_loss_db: 5.5         # System losses
+required_snr_db: 8.0        # Detection threshold
+
+notes: |
+  TPS-75 is a deployable air surveillance radar used for tactical air control.
+  Provides long-range detection and tracking of aircraft.
+  Used in GCI (Ground Controlled Intercept) operations.
+  Maximum instrumented range over 250 nmi for large targets.
+
+beam_config: null

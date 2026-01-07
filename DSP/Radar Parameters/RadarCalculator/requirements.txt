@@ -1,0 +1,17 @@
+# Radar Parameter Calculator - Dependencies
+
+# GUI Framework
+PyQt6>=6.4.0
+
+# Plotting
+pyqtgraph>=0.13.0
+
+# Numerical Computing
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Configuration
+PyYAML>=6.0
+
+# Optional: For creating standalone executables
+# pyinstaller>=5.0

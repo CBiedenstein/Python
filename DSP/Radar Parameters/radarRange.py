@@ -76,12 +76,12 @@ def calculate_radar_link_budget(
 
 # Inputs
 frequency = 3e9      # 9.4 GHz (X-Band)
-tx_power = 480e3       # 100 Watts
+tx_power = 2.4e9       # 100 Watts
 tx_gain = 36.0         # 30 dBi
 rx_gain = 39.0         # 30 dBi
 target_range = 440e3  # 5 km
 target_rcs = 1.0       # 1 m^2 (small fighter jet / car)
-system_loss = 5.0      # 5 dB internal loss
+system_loss = -5.0      # 5 dB internal loss
 
 # Run Calculation
 calculate_radar_link_budget(

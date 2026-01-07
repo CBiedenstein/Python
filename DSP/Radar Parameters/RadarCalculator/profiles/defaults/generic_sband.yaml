@@ -1,0 +1,31 @@
+# Generic S-Band Surveillance Radar
+# Template for custom S-band radar configurations
+
+name: "Generic S-Band"
+description: "Generic S-Band surveillance radar template"
+category: "Template"
+manufacturer: ""
+
+# Transmitter
+frequency_hz: 3000000000.0  # 3.0 GHz (S-Band center)
+peak_power_w: 1000000.0     # 1.0 MW peak
+
+# Antenna
+tx_gain_dbi: 32.0
+rx_gain_dbi: 32.0
+beam_count: 1
+
+# Receiver
+bandwidth_hz: 1000000.0     # 1.0 MHz
+noise_figure_db: 3.0
+
+# System
+system_loss_db: 5.0
+required_snr_db: 13.0       # Standard Pd = 0.9, Pfa = 1e-6
+
+notes: |
+  Generic S-band radar template.
+  Modify parameters as needed for specific applications.
+  S-band (2-4 GHz) provides good balance of range and resolution.
+
+beam_config: null

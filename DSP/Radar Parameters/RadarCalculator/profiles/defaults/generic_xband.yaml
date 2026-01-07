@@ -1,0 +1,32 @@
+# Generic X-Band Tracking Radar
+# Template for custom X-band radar configurations
+
+name: "Generic X-Band"
+description: "Generic X-Band tracking/fire control radar template"
+category: "Template"
+manufacturer: ""
+
+# Transmitter
+frequency_hz: 9400000000.0  # 9.4 GHz (X-Band)
+peak_power_w: 100000.0      # 100 kW peak
+
+# Antenna
+tx_gain_dbi: 36.0
+rx_gain_dbi: 36.0
+beam_count: 1
+
+# Receiver
+bandwidth_hz: 5000000.0     # 5.0 MHz (shorter pulses for tracking)
+noise_figure_db: 4.0
+
+# System
+system_loss_db: 6.0
+required_snr_db: 15.0       # Higher SNR for precision tracking
+
+notes: |
+  Generic X-band radar template.
+  X-band (8-12 GHz) provides high resolution and accuracy.
+  Commonly used for tracking and fire control applications.
+  Shorter wavelength means more atmospheric attenuation.
+
+beam_config: null
