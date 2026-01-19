@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NGSP Research Compendium: Phases 1-3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Roboto', sans-serif; background-color: #f8fafc; color: #334155; }
+        
+        /* Chart Container Styling - Mandatory */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px; /* Max width constraint */
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px; /* Base height */
+            max-height: 400px; /* Max height constraint */
+            background: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            overflow: hidden; /* Prevent overflow */
+        }
+        
+        @media (max-width: 640px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+
+        /* Custom Utilities */
+        .card {
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+            border-left: 6px solid #4f46e5; /* Indigo-600 */
+        }
+
+        .phase-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Diagram connectors without SVG */
+        .connector-line {
+            width: 2px;
+            background-color: #cbd5e1;
+            flex-grow: 1;
+            min-height: 20px;
+        }
+    </style>
+    <!-- Chosen Palette: "Electric & Technical" -->
+    <!-- Colors: 
+         Primary: #4f46e5 (Indigo 600)
+         Secondary: #db2777 (Pink 600)
+         Accent: #f59e0b (Amber 500)
+         Background: #f8fafc (Slate 50)
+    -->
+    <!-- Application Structure Plan:
+         1. Header: High-level overview of NGSP (Next Gen Signal Processor).
+         2. Phase 1 (ISP): Focus on Physics & Linearity. Viz: Line Chart (Pulse Compression).
+         3. Phase 2 (Interference): Brief overview of challenges. Viz: Scatter (Constellation).
+         4. Phase 3 (VCC): Deep dive into Vertical Clutter Cancellation. Viz: Stacked Bar (Beams), Logic Flow (HTML).
+         5. Summary: Key takeaways.
+         Narrative: Starts with the clean signal (Ph1), introduces the noise/threat (Ph2), and solves the complex 3D clutter problem (Ph3).
+    -->
+    <!-- Visualization & Content Choices:
+         - Ph1: Pulse Compression Sidelobes (Line Chart) -> Shows math precision.
+         - Ph2: IQ Constellation (Scatter) -> Shows noise impact.
+         - Ph3: Beam Energy (Stacked Bar) -> Shows "Punch Through" physics.
+         - Ph3: ROC Curve (Line) -> Shows trade-off.
+         - Justification: These represent the key physics problems identified in research.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="antialiased">
+
+    <!-- Hero Section -->
+    <header class="bg-slate-900 text-white pt-16 pb-24 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto text-center">
+            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4">
+                <span class="block text-indigo-400">NGSP Research Compendium</span>
+                <span class="block">Physics & Signal Processing</span>
+            </h1>
+            <p class="mt-4 text-xl text-slate-300 max-w-3xl mx-auto">
+                A synthesized technical analysis of Intersoft Electronics' Next Generation Signal Processor phases. From IF sampling linearity to complex vertical clutter cancellation algorithms.
+            </p>
+            <div class="mt-8 flex justify-center gap-4">
+                <span class="phase-badge bg-indigo-600 text-white">Phase 1: ISP</span>
+                <span class="phase-badge bg-pink-600 text-white">Phase 2: Interference</span>
+                <span class="phase-badge bg-amber-600 text-white">Phase 3: VCC</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 space-y-16 pb-20">
+
+        <!-- PHASE 1: ISP & Physics -->
+        <section class="card">
+            <div class="border-b border-slate-200 pb-4 mb-6">
+                <h2 class="text-2xl font-bold text-slate-800 flex items-center">
+                    <span class="text-indigo-600 text-3xl mr-3">&#9679;</span> 
+                    Phase 1: The IF Signal Processor (ISP)
+                </h2>
+                <p class="text-slate-500 mt-1">Foundational linearity, dynamic range, and matched filtering.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <div class="space-y-4">
+                    <p class="text-slate-600 leading-relaxed">
+                        The core of the NGSP is the **Digital IF Architecture**. By sampling at an intermediate frequency (IF) directly, we bypass analog mixers, eliminating DC offset and LO leakage issues. The critical research focus here is **Linearity** and **Pulse Compression**.
+                    </p>
+                    <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                        <h3 class="font-bold text-indigo-900 mb-2">Key Physics Equation: Matched Filter</h3>
+                        <p class="text-sm text-indigo-800 mb-2">The output $y[n]$ maximizes SNR by convolving with the time-reversed conjugate of the transmit pulse:</p>
+                        <div class="text-center font-mono text-slate-800 bg-white p-2 rounded">
+                            $$ y[n] = \sum_{k=-\infty}^{\infty} x[k] h^*[n-k] $$
+                        </div>
+                    </div>
+                    <ul class="space-y-2 text-sm text-slate-600">
+                        <li class="flex items-start"><span class="text-indigo-500 mr-2">&#10003;</span> <strong>Taylor Weighting:</strong> Applied to suppress time-domain sidelobes below -30dB.</li>
+                        <li class="flex items-start"><span class="text-indigo-500 mr-2">&#10003;</span> <strong>Dynamic Range:</strong> ADC dithering ensures SFDR > 80dB.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <div class="chart-container">
+                        <canvas id="pulseChart"></canvas>
+                    </div>
+                    <p class="text-xs text-center text-slate-500 mt-2 italic">
+                        Fig 1. Pulse Compression Response. Note the main lobe width vs. side lobe suppression levels (Taylor Window).
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- PHASE 2: Interference -->
+        <section class="card" style="border-left-color: #db2777;">
+            <div class="border-b border-slate-200 pb-4 mb-6">
+                <h2 class="text-2xl font-bold text-slate-800 flex items-center">
+                    <span class="text-pink-600 text-3xl mr-3">&#9679;</span> 
+                    Phase 2: Interference Suppression
+                </h2>
+                <p class="text-slate-500 mt-1">Handling asynchronous pulses and environmental noise pre-MTD.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                     <div class="chart-container">
+                        <canvas id="constellationChart"></canvas>
+                    </div>
+                    <p class="text-xs text-center text-slate-500 mt-2 italic">
+                        Fig 2. IQ Constellation showing coherent signal (tight cluster) vs. asynchronous interference (scattered points).
+                    </p>
+                </div>
+                <div class="space-y-4">
+                    <p class="text-slate-600 leading-relaxed">
+                        Before Doppler processing, the system must clean the spectrum. <strong>Asynchronous Interference</strong> (pulses from other radars) manifests as random noise spikes in the time domain or scattered points in the IQ plane.
+                    </p>
+                    <div class="bg-pink-50 p-4 rounded-lg border border-pink-100">
+                        <h3 class="font-bold text-pink-900 mb-2">Suppression Strategy</h3>
+                        <ul class="list-none space-y-2">
+                            <li class="flex items-center">
+                                <span class="w-2 h-2 bg-pink-500 rounded-full mr-2"></span>
+                                <span class="text-sm"><strong>PRN Jitter:</strong> Varying PRI to decorrelate interference.</span>
+                            </li>
+                            <li class="flex items-center">
+                                <span class="w-2 h-2 bg-pink-500 rounded-full mr-2"></span>
+                                <span class="text-sm"><strong>Side Lobe Blanking (SLB):</strong> Comparing Omni vs Main channel gain.</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PHASE 3: VCC (Stream B) -->
+        <section class="card" style="border-left-color: #d97706;">
+            <div class="border-b border-slate-200 pb-4 mb-6">
+                <h2 class="text-2xl font-bold text-slate-800 flex items-center">
+                    <span class="text-amber-600 text-3xl mr-3">&#9679;</span> 
+                    Phase 3: Vertical Clutter Cancellation (VCC)
+                </h2>
+                <p class="text-slate-500 mt-1">Solving the "Punch Through" problem in Stacked Beam Radars (TPS-75).</p>
+            </div>
+
+            <!-- VCC Logic Flow -->
+            <div class="mb-8">
+                <h3 class="text-lg font-bold text-slate-700 mb-4">The "Ghost Target" Phenomenon</h3>
+                <p class="text-slate-600 mb-4">
+                    In 3D radars, strong ground clutter enters the lowest beam ($B_1$). Due to finite antenna isolation ($\sim 25dB$), this energy leaks into upper elevation beams ($B_2 \dots B_6$), appearing as high-altitude "Ghost" targets.
+                </p>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Visualization of Beams -->
+                    <div>
+                         <div class="chart-container">
+                            <canvas id="beamStackChart"></canvas>
+                        </div>
+                        <p class="text-xs text-center text-slate-500 mt-2 italic">
+                            Fig 3. Energy distribution across elevation beams. Orange represents clutter leakage ("Punch Through").
+                        </p>
+                    </div>
+
+                    <!-- Logic/Math -->
+                    <div class="space-y-4">
+                         <div class="bg-amber-50 p-4 rounded-lg border border-amber-100">
+                            <h3 class="font-bold text-amber-900 mb-2">VCC Threshold Logic</h3>
+                            <p class="text-sm text-amber-800 mb-2">A target in Beam $i$ is declared a "Ghost" if its power $P_i$ correlates with Beam 1 power $P_1$ minus isolation $I_{iso}$:</p>
+                            <div class="text-center font-mono text-slate-800 bg-white p-2 rounded">
+                                $$ P_{i} < (P_{1} - I_{iso} + \Delta_{margin}) \rightarrow \text{Reject} $$
+                            </div>
+                        </div>
+
+                        <!-- Manual Diagram (No SVG) -->
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                            <div class="text-xs font-bold text-slate-500 uppercase mb-2">Algorithm Flow</div>
+                            <div class="flex flex-col items-center space-y-2">
+                                <div class="w-full bg-white border border-slate-300 p-2 text-center rounded text-sm font-bold shadow-sm">Sample Beam 1 (Reference)</div>
+                                <div class="text-slate-400 font-bold">&#8595;</div>
+                                <div class="w-full bg-white border border-slate-300 p-2 text-center rounded text-sm font-bold shadow-sm">Calculate Dynamic Threshold</div>
+                                <div class="text-slate-400 font-bold">&#8595;</div>
+                                <div class="w-full bg-amber-100 border border-amber-300 p-2 text-center rounded text-sm font-bold text-amber-900 shadow-sm">Compare Upper Beams</div>
+                                <div class="text-slate-400 font-bold">&#8595;</div>
+                                <div class="flex space-x-4 w-full">
+                                    <div class="flex-1 bg-red-100 border border-red-300 p-2 text-center rounded text-xs text-red-800">Blank (Ghost)</div>
+                                    <div class="flex-1 bg-green-100 border border-green-300 p-2 text-center rounded text-xs text-green-800">Pass (Target)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Trade-off Analysis -->
+            <div class="mt-8 border-t border-slate-100 pt-6">
+                <h3 class="text-lg font-bold text-slate-700 mb-4">Performance Trade-off (ROC)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <p class="text-slate-600 text-sm">
+                        Aggressive VCC settings maximize Clutter Rejection but risk "blanking" real targets that are flying low or in the crossover region between beams. The Receiver Operating Characteristic (ROC) curve below illustrates this optimization problem.
+                    </p>
+                    <div>
+                         <div class="chart-container" style="height: 250px;">
+                            <canvas id="rocChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-900 text-slate-400 py-12 text-center">
+        <div class="max-w-7xl mx-auto px-4">
+            <p class="mb-2 font-bold text-white">NGSP Research Data</p>
+            <p class="text-sm">Generated for Intersoft Electronics Technical Review</p>
+            <div class="mt-4 text-xs text-slate-600">
+                Visualization Engine: Chart.js • Styles: Tailwind CSS
+            </div>
+        </div>
+    </footer>
+
+    <!-- Chart Logic -->
+    <script>
+        // --- UTILS ---
+        
+        // Label wrapping utility for Chart.js
+        const wrapLabel = (str, limit = 16) => {
+            const words = str.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                if (currentLine.length + 1 + words[i].length <= limit) {
+                    currentLine += ' ' + words[i];
+                } else {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        };
+
+        // Common Tooltip Configuration
+        const commonTooltip = {
+            callbacks: {
+                title: function(tooltipItems) {
+                    const item = tooltipItems[0];
+                    let label = item.chart.data.labels[item.dataIndex];
+                    if (Array.isArray(label)) {
+                        return label.join(' ');
+                    } else {
+                        return label;
+                    }
+                }
+            }
+        };
+
+        // --- CHART GENERATION ---
+
+        // 1. Phase 1: Pulse Compression (Line Chart)
+        const ctxPulse = document.getElementById('pulseChart').getContext('2d');
+        
+        // Generate Sinc Function Data
+        const xValues = [];
+        const mainLobe = [];
+        const sideLobe = [];
+        for (let i = -20; i <= 20; i += 0.5) {
+            xValues.push(i);
+            // Approximation of Compressed Pulse
+            let val = i === 0 ? 1 : Math.sin(i)/i;
+            val = Math.abs(val);
+            
+            // Taylor weighting simulation (reduced sidelobes)
+            let weightedVal = val;
+            if (Math.abs(i) > 3) weightedVal = val * 0.3; // Suppress sidelobes
+            
+            mainLobe.push(weightedVal);
+        }
+
+        new Chart(ctxPulse, {
+            type: 'line',
+            data: {
+                labels: xValues.map(x => x.toFixed(1)), // Short numeric labels don't need wrapping
+                datasets: [{
+                    label: 'Compressed Pulse (Volts)',
+                    data: mainLobe,
+                    borderColor: '#4f46e5', // Indigo 600
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0
+                },
+                {
+                    label: 'Sidelobe Limit (-30dB)',
+                    data: Array(xValues.length).fill(0.15), // Approx line
+                    borderColor: '#ef4444',
+                    borderDash: [5, 5],
+                    borderWidth: 1,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: commonTooltip,
+                    title: { display: true, text: 'Matched Filter Response (Taylor Weighted)' }
+                },
+                scales: {
+                    y: { beginAtZero: true, display: false },
+                    x: { grid: { display: false }, title: {display: true, text: 'Range Bins'} }
+                }
+            }
+        });
+
+        // 2. Phase 2: IQ Constellation (Scatter)
+        const ctxConst = document.getElementById('constellationChart').getContext('2d');
+        
+        // Mock IQ Data
+        const signalPoints = [];
+        const noisePoints = [];
+        for(let i=0; i<30; i++) {
+            // Signal cluster
+            signalPoints.push({
+                x: 0.7 + (Math.random() - 0.5)*0.2,
+                y: 0.7 + (Math.random() - 0.5)*0.2
+            });
+            // Interference scatter
+            noisePoints.push({
+                x: (Math.random() - 0.5)*2,
+                y: (Math.random() - 0.5)*2
+            });
+        }
+
+        new Chart(ctxConst, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Coherent Signal',
+                    data: signalPoints,
+                    backgroundColor: '#4f46e5'
+                },
+                {
+                    label: 'Interference',
+                    data: noisePoints,
+                    backgroundColor: '#db2777' // Pink
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            title: () => 'IQ Sample'
+                        }
+                    }
+                },
+                scales: {
+                    x: { min: -1.5, max: 1.5, grid: { color: '#f1f5f9' } },
+                    y: { min: -1.5, max: 1.5, grid: { color: '#f1f5f9' } }
+                }
+            }
+        });
+
+        // 3. Phase 3: Stacked Beams (Stacked Bar)
+        const ctxBeam = document.getElementById('beamStackChart').getContext('2d');
+        
+        // Data: Beams 1-6. 
+        // Scenario: Clutter is strong in B1, leaks to others.
+        const beamLabels = ['Beam 1 (Main)', 'Beam 2', 'Beam 3', 'Beam 4', 'Beam 5', 'Beam 6'];
+        const processedLabels = beamLabels.map(l => wrapLabel(l));
+
+        new Chart(ctxBeam, {
+            type: 'bar',
+            data: {
+                labels: processedLabels,
+                datasets: [{
+                    label: 'Real Signal',
+                    data: [10, 5, 60, 10, 5, 5], // Real target in Beam 3
+                    backgroundColor: '#10b981', // Emerald (Real)
+                },
+                {
+                    label: 'Clutter/Leakage',
+                    data: [90, 40, 30, 20, 10, 5], // High clutter in B1, decaying leakage
+                    backgroundColor: '#d97706', // Amber (Clutter)
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: commonTooltip,
+                    legend: { position: 'top' }
+                },
+                scales: {
+                    x: { stacked: true, grid: { display: false } },
+                    y: { stacked: true, title: {display: true, text: 'Relative Power (%)'} }
+                }
+            }
+        });
+
+        // 4. Phase 3: ROC Curve (Line)
+        const ctxRoc = document.getElementById('rocChart').getContext('2d');
+        
+        const pfa = [0, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0];
+        const pdConservative = [0, 0.3, 0.5, 0.75, 0.85, 0.95, 1.0];
+        const pdAggressive = [0, 0.2, 0.4, 0.65, 0.80, 0.90, 1.0];
+
+        new Chart(ctxRoc, {
+            type: 'line',
+            data: {
+                labels: pfa.map(v => v.toString()),
+                datasets: [{
+                    label: 'Conservative VCC (Safe)',
+                    data: pdConservative,
+                    borderColor: '#10b981',
+                    tension: 0.3
+                },
+                {
+                    label: 'Aggressive VCC (Clean Scope)',
+                    data: pdAggressive,
+                    borderColor: '#d97706',
+                    tension: 0.3,
+                    borderDash: [5, 5]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: commonTooltip,
+                    legend: { position: 'bottom' },
+                    title: { display: true, text: 'Detection Probability vs False Alarms' }
+                },
+                scales: {
+                    x: { title: {display: true, text: 'False Alarm Rate (Pfa)'} },
+                    y: { title: {display: true, text: 'Prob. Detection (Pd)'}, min: 0, max: 1 }
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>

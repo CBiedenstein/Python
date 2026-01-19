@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NGSP Phase 1: ISP Technical Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Chart Container Utilities */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            height: 350px;
+            max-height: 400px;
+            margin: 0 auto;
+        }
+
+        /* Interactive Flow Nodes */
+        .flow-node {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .flow-node:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .flow-node.active {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        
+        /* Math rendering helpers */
+        .math-block {
+            background-color: #f1f5f9;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: #334155;
+            border-left: 4px solid #3b82f6;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+        }
+    </style>
+    <!-- Chosen Palette: Slate (Backgrounds), Blue (Primary/Interaction), Indigo (Accents), Emerald (Success/Stability) -->
+    <!-- Application Structure Plan: 
+         1. Top Bar: Global Radar Parameters (simulation inputs).
+         2. Navigation/Flow: A visual signal chain (ADC -> DDC -> PC -> MTI -> CFAR). 
+         3. Main Content Area (Dynamic):
+            - Theory Panel: Explains the physics, equations, and Intersoft-specific constraints.
+            - Viz Panel: Live simulation of the signal at that stage using Chart.js.
+         4. Footer: Summary of design requirements.
+         Rationale: This structure separates the "Input" (Radar Params) from the "Process" (Signal Chain), allowing users to see how changing physics parameters affects each stage of the ISP.
+    -->
+    <!-- Visualization & Content Choices:
+         - Charts: Line charts for waveforms, Scatter for IQ constellations, Bar for Spectrum.
+         - Interaction: Sliders to change PRF/Velocity, updating charts immediately.
+         - No SVG/Mermaid: Flowchart built with Flexbox and CSS borders.
+         - Justification: Users need to see the *effect* of math on signals (e.g., Doppler shift visualization).
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header & Global Controls -->
+    <header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-800 tracking-tight">NGSP Phase 1: ISP Explorer</h1>
+                    <p class="text-sm text-slate-500">Intersoft Electronics • IF Signal Processor Physics & Research Plan</p>
+                </div>
+                <div class="hidden md:block">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Status: Research Phase
+                    </span>
+                </div>
+            </div>
+
+            <!-- Global Physics Parameters -->
+            <div class="bg-slate-50 rounded-lg p-4 border border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                <div>
+                    <label class="block text-slate-500 mb-1">Center Frequency ($f_c$)</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="range" id="param-freq" min="1" max="10" step="0.5" value="2.8" class="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer">
+                        <span class="mono w-16 text-right"><span id="val-freq">2.8</span> GHz</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-500 mb-1">PRF (Pulse Repetition Freq)</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="range" id="param-prf" min="200" max="2000" step="100" value="1000" class="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer">
+                        <span class="mono w-16 text-right"><span id="val-prf">1000</span> Hz</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-500 mb-1">Target Velocity ($v_r$)</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="range" id="param-vel" min="-200" max="200" step="10" value="50" class="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer">
+                        <span class="mono w-16 text-right"><span id="val-vel">50</span> m/s</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-500 mb-1">Target SNR</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="range" id="param-snr" min="0" max="60" step="5" value="20" class="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer">
+                        <span class="mono w-16 text-right"><span id="val-snr">20</span> dB</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- Intro Section -->
+        <div class="mb-8">
+            <h2 class="text-lg font-semibold text-slate-800 mb-2">System Overview</h2>
+            <p class="text-slate-600 leading-relaxed max-w-4xl">
+                The Next Generation Signal Processor (NGSP) Phase 1 focuses on the <strong>IF Signal Processor (ISP)</strong>. 
+                For Intersoft Electronics' high-fidelity analysis tools, the ISP must prioritize linearity, dynamic range, and phase stability to accurately capture radar performance degradation. 
+                This interactive research plan models the physics of the digital signal chain from ADC sampling to detection.
+            </p>
+        </div>
+
+        <!-- Interactive Signal Chain Navigation -->
+        <div class="mb-8 overflow-x-auto pb-4">
+            <div class="flex space-x-4 min-w-[800px] justify-between relative">
+                <!-- Connecting Line -->
+                <div class="absolute top-1/2 left-0 w-full h-1 bg-slate-200 -z-10 transform -translate-y-1/2"></div>
+                
+                <!-- Nodes -->
+                <button onclick="app.setStage('adc')" class="flow-node bg-white p-4 rounded-xl shadow-sm w-40 text-left active" id="btn-adc">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Input Stage</div>
+                    <div class="font-bold text-slate-800">ADC & Sampling</div>
+                </button>
+
+                <button onclick="app.setStage('ddc')" class="flow-node bg-white p-4 rounded-xl shadow-sm w-40 text-left" id="btn-ddc">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Down Conversion</div>
+                    <div class="font-bold text-slate-800">Digital IQ (DDC)</div>
+                </button>
+
+                <button onclick="app.setStage('pc')" class="flow-node bg-white p-4 rounded-xl shadow-sm w-40 text-left" id="btn-pc">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Filter</div>
+                    <div class="font-bold text-slate-800">Pulse Compress</div>
+                </button>
+
+                <button onclick="app.setStage('mti')" class="flow-node bg-white p-4 rounded-xl shadow-sm w-40 text-left" id="btn-mti">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Doppler</div>
+                    <div class="font-bold text-slate-800">MTI & Doppler</div>
+                </button>
+
+                <button onclick="app.setStage('cfar')" class="flow-node bg-white p-4 rounded-xl shadow-sm w-40 text-left" id="btn-cfar">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Detection</div>
+                    <div class="font-bold text-slate-800">CFAR / Output</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Detailed Analysis Split View -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- LEFT: Physics & Technical Considerations -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
+                <div class="border-b border-slate-100 pb-4 mb-4 flex justify-between items-baseline">
+                    <h3 id="panel-title" class="text-xl font-bold text-slate-800">ADC & Direct Sampling</h3>
+                    <span id="panel-tag" class="text-xs font-mono bg-slate-100 text-slate-500 px-2 py-1 rounded">PHYSICS MODEL</span>
+                </div>
+                
+                <div id="panel-content" class="space-y-6 flex-grow">
+                    <!-- Content injected by JS -->
+                </div>
+            </div>
+
+            <!-- RIGHT: Simulation & Visualization -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
+                 <div class="border-b border-slate-100 pb-4 mb-4 flex justify-between items-baseline">
+                    <h3 class="text-lg font-bold text-slate-800">Live Simulation Output</h3>
+                    <div class="flex space-x-2 text-xs">
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-blue-500 mr-1"></span> Signal</span>
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-gray-300 mr-1"></span> Noise/Ref</span>
+                    </div>
+                </div>
+
+                <div class="flex-grow flex flex-col justify-center">
+                    <div class="chart-container">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                    <div id="chart-legend" class="mt-4 text-sm text-slate-500 text-center italic">
+                        Visualizing sampling effects in Time Domain
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 text-slate-300 py-8 mt-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8 text-sm">
+            <div>
+                <h4 class="font-bold text-white mb-2">Intersoft Design Constraints</h4>
+                <ul class="space-y-1">
+                    <li>• Linearity > 60dB for clutter rejection</li>
+                    <li>• Phase Stability < 0.5° RMS</li>
+                    <li>• Digital IF architecture preferred</li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-white mb-2">Research Objectives</h4>
+                <ul class="space-y-1">
+                    <li>• Evaluate FPGA vs ASIC for DDC</li>
+                    <li>• Analyze dynamic range bottlenecks</li>
+                    <li>• Verify MTD filter bank performance</li>
+                </ul>
+            </div>
+            <div class="text-right opacity-75">
+                <p>NGSP Phase 1 Research Plan</p>
+                <p>Generated for Intersoft Electronics</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+        // --- DATA STORE: Technical Content ---
+        const stageData = {
+            adc: {
+                title: "Direct IF Sampling & ADC",
+                content: `
+                    <div class="prose prose-sm text-slate-600">
+                        <p class="mb-3">
+                            For Intersoft's high-fidelity analysis, we utilize <strong>Direct IF Sampling</strong> (undersampling). This eliminates analog mixers, reducing LO leakage and phase noise drift.
+                        </p>
+                        
+                        <h4 class="font-bold text-slate-800 mt-4 mb-2">Key Physics Equations</h4>
+                        <div class="math-block">
+                            <div class="mb-1">Nyquist Zone Selection:</div>
+                            f_s = \frac{4 \cdot f_{IF}}{2n \pm 1}
+                        </div>
+                        <div class="math-block">
+                            <div class="mb-1">Dynamic Range (SNR):</div>
+                            SNR_{max} = 6.02 \cdot N + 1.76 \text{ dB}
+                        </div>
+
+                        <h4 class="font-bold text-slate-800 mt-4 mb-2">Intersoft Considerations</h4>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li><strong>Jitter Sensitivity:</strong> Aperture jitter limits high-frequency sampling performance. Must be < 100fs.</li>
+                            <li><strong>Spurious Free Dynamic Range (SFDR):</strong> Critical for detecting small targets next to large clutter.</li>
+                            <li><strong>Quantization Noise:</strong> Dithering may be required to linearize the ADC transfer function.</li>
+                        </ul>
+                    </div>
+                `,
+                legend: "Time Domain: IF Signal vs Sampling Points",
+                chartType: 'line'
+            },
+            ddc: {
+                title: "Digital Down Conversion (DDC)",
+                content: `
+                    <div class="prose prose-sm text-slate-600">
+                        <p class="mb-3">
+                            The DDC converts the real digital IF signal into a complex baseband signal ($I + jQ$). This stage defines the system's instantaneous bandwidth and filters out out-of-band noise.
+                        </p>
+                        
+                        <h4 class="font-bold text-slate-800 mt-4 mb-2">Quadrature Demodulation</h4>
+                        <div class="math-block">
+                            I(n) = x(n) \cdot \cos(2\pi f_{IF} n T_s)<br>
+                            Q(n) = -x(n) \cdot \sin(2\pi f_{IF} n T_s)
+                        </div>
+
+                        <h4 class="font-bold text-slate-800 mt-4 mb-2">Design Requirements</h4>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li><strong>IQ Balance:</strong> Being digital, the gain and phase balance are perfect (mathematically 0 error), superior to analog IQ.</li>
+                            <li><strong>Decimation:</strong> Reduces data rate to match signal bandwidth, improving SNR by process gain.</li>
+                            <li><strong>Process Gain:</strong> $G_p = 10 \log_{10}(\text{Decimation Factor})$</li>
+                        </ul>
+                    </div>
+                `,
+                legend: "IQ Constellation (Phase Rotation based on Velocity)",
+                chartType: 'scatter'
+            },
+            pc: {
+                title: "Pulse Compression (Matched Filter)",
+                content: `
+                    <div class="prose prose-sm text-slate-600">
+                        <p class="mb-3">
+                            Pulse compression decouples range resolution from transmitted energy. We transmit a long coded pulse (chirp) and compress it on receive.
+                        </p>
+                        
+                        <h4 class="font-bold text-slate-800 mt-4 mb-2">Matched Filter Equation</h4>
+                        <div class="math-block">
+                            y[n] = x[n] * h^*[-n]<br>
+                            \text{where } h[n] \text{ is the Tx replica}
+                        </div>
+
+                        <h4 class="font-bold text-slate-800 mt-4 mb-2">Side-lobe Suppression</h4>
+                        <p class="mb-2">
+                            Raw matched filtering produces sinc-like sidelobes (-13dB). For NGSP, we apply <strong>Taylor</strong> or <strong>Hamming</strong> weighting to reduce sidelobes to < -30dB, at the cost of slight main-lobe broadening.
+                        </p>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li><strong>Time-Bandwidth Product:</strong> Determines the compression ratio.</li>
+                            <li><strong>Doppler Tolerance:</strong> LFM (Linear Frequency Mod) chirps are Doppler tolerant but exhibit range-Doppler coupling.</li>
+                        </ul>
+                    </div>
+                `,
+                legend: "Compressed Pulse Response (Range Bins)",
+                chartType: 'line'
+            },
+            mti: {
+                title: "Moving Target Indication (Doppler)",
+                content: `
+                    <div class="prose prose-sm text-slate-600">
+                        <p class="mb-3">
+                            MTI separates moving targets from stationary clutter using phase shifts between pulses. MTD (Moving Target Detector) uses a filter bank (FFT) for better velocity resolution.
+                        </p>
+                        
+                        <h4 class="font-bold text-slate-800 mt-4 mb-2">Doppler Physics</h4>
+                        <div class="math-block">
+                            f_d = \frac{2 \cdot v_r}{\lambda} = \frac{2 \cdot v_r \cdot f_c}{c}
+                        </div>
+                        <div class="math-block">
+                            \text{Blind Speed: } v_{blind} = \frac{n \cdot \lambda \cdot PRF}{2}
+                        </div>
+
+                        <h4 class="font-bold text-slate-800 mt-4 mb-2">Intersoft Analysis Focus</h4>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li><strong>Blind Speeds:</strong> The simulation to the right shows the Doppler spectrum. Adjust Velocity to see the shift.</li>
+                            <li><strong>Clutter Attenuation:</strong> High pass filtering removes DC (clutter).</li>
+                            <li><strong>Coherent Integration:</strong> Summing $N$ pulses increases SNR by factor $N$.</li>
+                        </ul>
+                    </div>
+                `,
+                legend: "Doppler Spectrum (Velocity Bins)",
+                chartType: 'bar'
+            },
+            cfar: {
+                title: "CFAR Detection & Output",
+                content: `
+                    <div class="prose prose-sm text-slate-600">
+                        <p class="mb-3">
+                            Constant False Alarm Rate (CFAR) processing adapts the detection threshold based on local noise/clutter levels to maintain a constant $P_{fa}$.
+                        </p>
+                        
+                        <h4 class="font-bold text-slate-800 mt-4 mb-2">Cell Averaging CFAR</h4>
+                        <div class="math-block">
+                            T = \alpha \cdot \frac{1}{N} \sum_{i \in \text{Ref Cells}} x_i
+                        </div>
+
+                        <h4 class="font-bold text-slate-800 mt-4 mb-2">Output Data Formatting</h4>
+                        <p class="mb-2">For the NGSP ISP, output data includes:</p>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li><strong>Plot Reports:</strong> Range, Azimuth, Doppler, Amplitude.</li>
+                            <li><strong>Status:</strong> Noise floor estimates, saturation warnings.</li>
+                            <li><strong>Format:</strong> ASTERIX CAT 048 (standard surveillance) or Proprietary Raw IQ (for RASS analysis).</li>
+                        </ul>
+                    </div>
+                `,
+                legend: "Detection Threshold vs Signal",
+                chartType: 'line'
+            }
+        };
+
+        // --- APP LOGIC ---
+        const app = {
+            currentStage: 'adc',
+            chartInstance: null,
+
+            // Global Params
+            params: {
+                freq: 2.8, // GHz
+                prf: 1000, // Hz
+                vel: 50,   // m/s
+                snr: 20    // dB
+            },
+
+            init() {
+                this.bindInputs();
+                this.setStage('adc');
+                window.addEventListener('resize', () => {
+                   if(this.chartInstance) this.chartInstance.resize(); 
+                });
+            },
+
+            bindInputs() {
+                const map = {
+                    'param-freq': 'freq',
+                    'param-prf':  'prf',
+                    'param-vel':  'vel',
+                    'param-snr':  'snr'
+                };
+
+                for (const [id, key] of Object.entries(map)) {
+                    const el = document.getElementById(id);
+                    const disp = document.getElementById(id.replace('param', 'val'));
+                    el.addEventListener('input', (e) => {
+                        this.params[key] = parseFloat(e.target.value);
+                        disp.innerText = this.params[key];
+                        this.updateSimulation();
+                    });
+                }
+            },
+
+            setStage(stageKey) {
+                this.currentStage = stageKey;
+                
+                // UI Updates
+                document.querySelectorAll('.flow-node').forEach(el => el.classList.remove('active'));
+                document.getElementById(`btn-${stageKey}`).classList.add('active');
+                
+                // Content Updates
+                const data = stageData[stageKey];
+                document.getElementById('panel-title').innerText = data.title;
+                document.getElementById('panel-content').innerHTML = data.content;
+                document.getElementById('chart-legend').innerText = data.legend;
+
+                // Chart Rebuild
+                this.buildChart(data.chartType);
+            },
+
+            // --- PHYSICS ENGINE & CHART GENERATION ---
+            generateData() {
+                const { freq, prf, vel, snr } = this.params;
+                const lambda = 0.3 / freq; // wavelength in m
+                const fd = (2 * vel) / lambda; // Doppler shift Hz
+                
+                // 1. ADC / Time Domain Data
+                if (this.currentStage === 'adc') {
+                    const points = 100;
+                    const labels = Array.from({length: points}, (_, i) => i);
+                    // Create a carrier wave + noise
+                    const signal = labels.map(t => {
+                        const noise = (Math.random() - 0.5) * (20 / snr); 
+                        return Math.sin(t * 0.2) + noise; 
+                    });
+                    const samples = labels.map((t, i) => i % 5 === 0 ? signal[i] : null); // Simulate sampling
+
+                    return {
+                        labels,
+                        datasets: [
+                            {
+                                label: 'Analog IF Signal',
+                                data: signal,
+                                borderColor: '#94a3b8',
+                                borderWidth: 1,
+                                pointRadius: 0,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'ADC Samples',
+                                data: samples,
+                                backgroundColor: '#3b82f6',
+                                borderColor: '#3b82f6',
+                                type: 'scatter',
+                                pointRadius: 4
+                            }
+                        ]
+                    };
+                }
+
+                // 2. DDC / IQ Constellation
+                if (this.currentStage === 'ddc') {
+                    const points = 50;
+                    // Rotation speed depends on Velocity (Doppler)
+                    // Higher velocity = faster rotation in IQ plane
+                    const rotationSpeed = (vel / 200) * Math.PI; 
+                    const data = [];
+                    const noiseMag = 20 / (snr + 1);
+
+                    for(let i=0; i<points; i++) {
+                        const angle = i * rotationSpeed;
+                        // Add randomness for SNR
+                        const r = 1 + (Math.random() - 0.5) * noiseMag;
+                        data.push({
+                            x: r * Math.cos(angle),
+                            y: r * Math.sin(angle)
+                        });
+                    }
+
+                    return {
+                        datasets: [{
+                            label: 'IQ Samples',
+                            data: data,
+                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                            borderColor: '#2563eb',
+                            pointRadius: 5
+                        }]
+                    };
+                }
+
+                // 3. Pulse Compression
+                if (this.currentStage === 'pc') {
+                    const bins = 100;
+                    const center = 50;
+                    const labels = Array.from({length: bins}, (_, i) => i - 50);
+                    
+                    // Sinc function approximation for compressed pulse
+                    const data = labels.map(x => {
+                        if (x === 0) return 1;
+                        const v = x * 0.5; // Mainlobe width factor
+                        // Taylor weighting simulation (lower sidelobes)
+                        const sinc = Math.sin(v) / v;
+                        const sidelobe = Math.abs(sinc) * 0.2; // Artificial sidelobe level
+                        const noise = Math.random() * (10/snr);
+                        return Math.abs(sinc) > 0.1 ? Math.abs(sinc) : sidelobe + noise;
+                    });
+
+                    return {
+                        labels,
+                        datasets: [{
+                            label: 'Matched Filter Output (Volts)',
+                            data: data,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Threshold',
+                            data: Array(bins).fill(0.3),
+                            borderColor: '#ef4444',
+                            borderDash: [5, 5],
+                            borderWidth: 1,
+                            pointRadius: 0
+                        }]
+                    };
+                }
+
+                // 4. MTI / Doppler
+                if (this.currentStage === 'mti') {
+                    const bins = 64; // FFT bins
+                    const labels = Array.from({length: bins}, (_, i) => i - 32);
+                    
+                    // Calculate bin where target appears
+                    // Max Doppler (Blind speed) corresponds to PRF/2
+                    const maxFd = prf / 2;
+                    const normalizedFd = fd % prf; 
+                    // Simple bin mapping
+                    let targetBin = Math.round((normalizedFd / maxFd) * 32);
+                    // Wrap around logic simplified
+                    if (targetBin > 31) targetBin -= 64;
+                    if (targetBin < -32) targetBin += 64;
+
+                    const data = labels.map((bin, i) => {
+                        const isTarget = Math.abs(bin - targetBin) < 2;
+                        const isClutter = Math.abs(bin) < 3; // DC Clutter
+                        
+                        let val = Math.random() * (20/snr); // Noise floor
+                        if (isTarget) val += 0.8;
+                        if (isClutter) val += 0.6; // Clutter spike
+                        return val;
+                    });
+
+                    return {
+                        labels,
+                        datasets: [{
+                            label: 'Doppler Spectrum',
+                            data: data,
+                            backgroundColor: data.map((v, i) => Math.abs(labels[i]) < 3 ? '#94a3b8' : '#3b82f6'),
+                            borderRadius: 2
+                        }]
+                    };
+                }
+
+                // 5. CFAR
+                if (this.currentStage === 'cfar') {
+                    const bins = 100;
+                    const labels = Array.from({length: bins}, (_, i) => i);
+                    
+                    // Signal with noise
+                    const signal = labels.map(i => {
+                        let val = Math.random() * 0.2; // Noise
+                        if (Math.abs(i - 40) < 2) val += 0.8; // Target 1
+                        if (Math.abs(i - 70) < 2) val += 0.6; // Target 2
+                        return val;
+                    });
+
+                    // CFAR Threshold (Moving average of noise)
+                    const threshold = signal.map((v, i) => {
+                        // Simple CA-CFAR simulation
+                        return 0.35; // Simplified fixed + margin for visuals
+                    });
+
+                    return {
+                        labels,
+                        datasets: [
+                            {
+                                label: 'Signal Magnitude',
+                                data: signal,
+                                borderColor: '#3b82f6',
+                                borderWidth: 2,
+                                tension: 0.1
+                            },
+                            {
+                                label: 'CFAR Threshold',
+                                data: threshold,
+                                borderColor: '#ef4444',
+                                borderDash: [5, 5],
+                                borderWidth: 2,
+                                pointRadius: 0
+                            }
+                        ]
+                    };
+                }
+            },
+
+            buildChart(type) {
+                const ctx = document.getElementById('mainChart').getContext('2d');
+                if (this.chartInstance) this.chartInstance.destroy();
+
+                const chartData = this.generateData();
+
+                // Specific Options based on type
+                const options = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 400 },
+                    plugins: {
+                        legend: { display: true, position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        x: { display: true, grid: { display: false } },
+                        y: { display: true, beginAtZero: true }
+                    }
+                };
+
+                if (type === 'scatter') {
+                    options.scales = {
+                        x: { type: 'linear', position: 'bottom', min: -2, max: 2, title: {display: true, text: 'I (In-Phase)'} },
+                        y: { min: -2, max: 2, title: {display: true, text: 'Q (Quadrature)'} }
+                    };
+                }
+
+                this.chartInstance = new Chart(ctx, {
+                    type: type,
+                    data: chartData,
+                    options: options
+                });
+            },
+
+            updateSimulation() {
+                if (!this.chartInstance) return;
+                const newData = this.generateData();
+                this.chartInstance.data = newData;
+                this.chartInstance.update('none'); // Update without full re-render animation
+            }
+        };
+
+        // Start App
+        app.init();
+
+    </script>
+</body>
+</html>

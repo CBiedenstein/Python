@@ -23,6 +23,7 @@ from ui.widgets.unit_toggle import UnitToggleBar
 from ui.widgets.waveform_panel import WaveformPanel
 from ui.plots.plot_manager import PlotManager
 from ui.simulation_tab import SimulationTab
+from ui.chirp_generator_tab import ChirpGeneratorTab
 
 from core.radar_equations import RadarCalculator, RadarParameters, TargetScenario
 from core.waveforms import calculate_waveform_performance
@@ -297,6 +298,10 @@ class MainWindow(QMainWindow):
         self.simulation_tab = SimulationTab()
         self.tab_widget.addTab(self.simulation_tab, "Track Simulator")
 
+        # Chirp Generator tab
+        self.chirp_tab = ChirpGeneratorTab()
+        self.tab_widget.addTab(self.chirp_tab, "Chirp Generator")
+
         main_layout.addWidget(self.tab_widget)
 
         # Status bar
@@ -342,6 +347,10 @@ class MainWindow(QMainWindow):
         sim_tab_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(1))
         view_menu.addAction(sim_tab_action)
 
+        chirp_tab_action = QAction("Chirp Generator Tab", self)
+        chirp_tab_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(2))
+        view_menu.addAction(chirp_tab_action)
+
         # Help menu
         help_menu = menubar.addMenu("&Help")
 
@@ -352,6 +361,7 @@ class MainWindow(QMainWindow):
     def _initial_setup(self):
         """Perform initial setup after window is shown."""
         self.calculator_tab.initial_setup()
+        self.chirp_tab.initial_setup()
 
     def _toggle_theme(self):
         """Toggle between dark and light themes."""
@@ -492,7 +502,7 @@ class MainWindow(QMainWindow):
             self,
             "About Radar Parameter Calculator",
             """<h2>Radar Parameter Calculator</h2>
-            <p>Version 2.0</p>
+            <p>Version 2.1</p>
             <p>A holistic radar performance analysis tool.</p>
             <p><b>Features:</b></p>
             <ul>
@@ -502,8 +512,10 @@ class MainWindow(QMainWindow):
                 <li>Waveform/pulse compression analysis</li>
                 <li>Interactive plots</li>
                 <li>Unit conversion support</li>
-                <li><b>NEW:</b> Live PPI track simulator</li>
+                <li>Live PPI track simulator</li>
                 <li>Aircraft and vessel target library</li>
+                <li><b>NEW:</b> FM Chirp waveform generator</li>
+                <li>IQ data export (complex64, int16, numpy)</li>
             </ul>
             <p>Built with PyQt6 and pyqtgraph.</p>
             """

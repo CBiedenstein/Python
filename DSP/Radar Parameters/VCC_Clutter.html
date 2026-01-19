@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NGSP Phase 3: VCC Physics & Logic Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- MathJax for professional equation rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+
+        body { font-family: 'Inter', sans-serif; background-color: #fafaf9; color: #1c1917; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Chart Container Utilities */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            height: 320px; /* Specific height for split view */
+            max-height: 400px;
+            margin: 0 auto;
+        }
+
+        /* Math/Eq Block Styling */
+        .eq-block {
+            background-color: #ffffff;
+            border: 1px solid #e7e5e4;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            margin-bottom: 1rem;
+            overflow-x: auto;
+        }
+
+        /* Interactive Elements */
+        .control-group {
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e7e5e4;
+        }
+        
+        .beam-indicator {
+            transition: all 0.3s ease;
+        }
+    </style>
+    <!-- Chosen Palette: "Radar Tech" - Warm Grays (Stone) background, Deep Orange/Amber (Warning/Clutter), Emerald (Clear/Pass). -->
+    
+    <!-- Application Structure Plan:
+         1. Header: Context for NGSP Phase 3 (VCC) and target systems (TPS-75).
+         2. Physics Control Deck: Global parameters for the simulation (RCS, Isolation, Ducting).
+         3. Main Workspace (Split View):
+            - Left: "Beam Physics". Visualizes the signal power in 6 beams. Includes formatted LaTeX equations explaining Sidelobe Leakage.
+            - Right: "VCC Logic". Visualizes the algorithm's decision tree. Includes formatted LaTeX equations for the Thresholding logic.
+         4. Footer: Summary.
+         
+         Rationale: The user needs to connect the *Physics* ($P_{rx}$) to the *Logic* ($\Gamma_{thresh}$). Split view allows simultaneous observation of cause (leakage) and effect (blanking).
+    -->
+
+    <!-- Visualization & Content Choices:
+         - Bar Chart: Best for showing discrete beam power levels and the "Punch Through" effect.
+         - Logic Flow: CSS-styled blocks representing the VCC algorithm steps.
+         - MathJax: Used to render variables like Sigma, Gamma, and Lambda correctly.
+         - Justification: Radar physics relies heavily on mathematical relationships.
+    -->
+    
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-stone-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-stone-800 tracking-tight">NGSP Phase 3: VCC Explorer</h1>
+                    <p class="text-xs text-stone-500 font-mono mt-1">STREAM B: VERTICAL CLUTTER CANCELLATION • AN/TPS-75</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span class="text-xs font-bold text-stone-600 uppercase">Physics Simulation Active</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
+
+        <!-- Intro Text -->
+        <div class="max-w-4xl">
+            <p class="text-stone-600 text-sm leading-relaxed">
+                <strong>Physics Context:</strong> In 3D stacked-beam radars (TPS-43/70/75), strong surface clutter ($\sigma_c$) enters the lowest elevation beam ($B_1$). Due to finite antenna isolation ($I_{ant}$), this energy leaks into upper beams ($B_2 \dots B_6$) via sidelobes, creating "Ghost Targets". 
+                The <strong>VCC Algorithm</strong> compares beam amplitudes to distinguish real high-altitude targets from this leakage.
+            </p>
+        </div>
+
+        <!-- Controls -->
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <div class="control-group">
+                <label class="flex justify-between text-xs font-bold text-stone-500 uppercase tracking-wide mb-2">
+                    <span>Clutter RCS ($\sigma_c$)</span>
+                    <span id="disp-rcs" class="text-amber-600">60 dBsm</span>
+                </label>
+                <input type="range" id="in-rcs" min="30" max="90" step="1" value="60" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-amber-600">
+                <p class="text-xs text-stone-400 mt-2">Reflectivity of terrain/mountains.</p>
+            </div>
+
+            <div class="control-group">
+                <label class="flex justify-between text-xs font-bold text-stone-500 uppercase tracking-wide mb-2">
+                    <span>Antenna Isolation ($I_{iso}$)</span>
+                    <span id="disp-iso" class="text-amber-600">25 dB</span>
+                </label>
+                <input type="range" id="in-iso" min="15" max="45" step="1" value="25" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-amber-600">
+                <p class="text-xs text-stone-400 mt-2">Sidelobe suppression capability.</p>
+            </div>
+
+            <div class="control-group">
+                <label class="flex justify-between text-xs font-bold text-stone-500 uppercase tracking-wide mb-2">
+                    <span>Atmos. Ducting ($D_{fac}$)</span>
+                    <span id="disp-duct" class="text-amber-600">Standard</span>
+                </label>
+                <input type="range" id="in-duct" min="1" max="3" step="1" value="1" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-amber-600">
+                <p class="text-xs text-stone-400 mt-2">1=Std, 2=Surface, 3=Super-Refract.</p>
+            </div>
+
+            <div class="control-group">
+                <label class="block text-xs font-bold text-stone-500 uppercase tracking-wide mb-2">VCC Logic Mode</label>
+                <select id="in-mode" class="w-full bg-stone-50 border border-stone-200 text-stone-700 text-sm rounded-lg p-2 focus:ring-amber-500 focus:border-amber-500">
+                    <option value="off">VCC OFF (Raw Video)</option>
+                    <option value="conservative">Conservative ($\Gamma_{low}$)</option>
+                    <option value="aggressive">Aggressive ($\Gamma_{high}$)</option>
+                </select>
+                <p class="text-xs text-stone-400 mt-2">Determines threshold calculation.</p>
+            </div>
+
+        </section>
+
+        <!-- Main Split View -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            <!-- LEFT: PHYSICS SIMULATION -->
+            <div class="flex flex-col space-y-6">
+                <div class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm">
+                    <div class="flex justify-between items-baseline mb-6 border-b border-stone-100 pb-2">
+                        <h2 class="text-lg font-bold text-stone-800">Beam Physics Simulation</h2>
+                        <span class="text-xs bg-stone-100 text-stone-500 px-2 py-1 rounded font-mono">Input Stage</span>
+                    </div>
+
+                    <!-- Beam Chart -->
+                    <div class="chart-container">
+                        <canvas id="beamChart"></canvas>
+                    </div>
+
+                    <!-- Physics Readout -->
+                    <div class="grid grid-cols-3 gap-2 mt-4 text-center">
+                        <div class="p-2 bg-stone-50 rounded border border-stone-100">
+                            <div class="text-xs text-stone-500 mb-1">Beam 1 Power</div>
+                            <div class="font-bold text-stone-800 font-mono" id="val-b1">0 dB</div>
+                        </div>
+                        <div class="p-2 bg-stone-50 rounded border border-stone-100">
+                            <div class="text-xs text-stone-500 mb-1">Avg Leakage</div>
+                            <div class="font-bold text-stone-800 font-mono" id="val-leak">0 dB</div>
+                        </div>
+                        <div class="p-2 bg-stone-50 rounded border border-stone-100">
+                            <div class="text-xs text-stone-500 mb-1">Punch Through</div>
+                            <div class="font-bold text-stone-800 font-mono" id="val-punch">None</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Physics Theory Block -->
+                <div class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm">
+                    <h3 class="text-sm font-bold text-stone-800 uppercase tracking-wide mb-3">Sidelobe Leakage Equation</h3>
+                    <div class="eq-block">
+                        $$ P_{leak}(i) = P_{main} - I_{iso} + \delta_{stoch} $$
+                    </div>
+                    <p class="text-xs text-stone-500 leading-relaxed">
+                        Where $P_{main}$ is the power in Beam 1 (clutter source), $I_{iso}$ is the antenna isolation (usually 20-30dB), and $\delta_{stoch}$ represents statistical fluctuations (scintillation) causing "spiky" ghosts.
+                    </p>
+                </div>
+            </div>
+
+            <!-- RIGHT: ALGORITHM LOGIC -->
+            <div class="flex flex-col space-y-6">
+                
+                <!-- Logic Theory Block -->
+                <div class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm">
+                    <h3 class="text-sm font-bold text-stone-800 uppercase tracking-wide mb-3">VCC Decision Equation</h3>
+                    <div class="eq-block">
+                        $$ \text{If } P_{rx}(i) < \left( P_{rx}(1) - I_{iso} + M_{safety} \right) \implies \text{Ghost} $$
+                    </div>
+                    <p class="text-xs text-stone-500 leading-relaxed">
+                        The algorithm sets a dynamic threshold based on Beam 1. $M_{safety}$ is the safety margin (determined by "Mode"). If upper beam power is below this threshold, it is correlated with Beam 1 and blanked.
+                    </p>
+                </div>
+
+                <!-- Logic Visualizer -->
+                <div class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm flex-grow">
+                    <div class="flex justify-between items-baseline mb-6 border-b border-stone-100 pb-2">
+                        <h2 class="text-lg font-bold text-stone-800">Algorithm State</h2>
+                        <span id="badge-status" class="text-xs font-bold text-white bg-stone-400 px-2 py-1 rounded">IDLE</span>
+                    </div>
+
+                    <div class="space-y-4 relative">
+                        <!-- Step 1 -->
+                        <div class="flex items-center space-x-4">
+                            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center font-bold text-stone-500 text-sm">1</div>
+                            <div class="flex-grow bg-stone-50 p-3 rounded border border-stone-200 flex justify-between">
+                                <span class="text-sm text-stone-700">Measure Reference ($B_1$)</span>
+                                <span class="font-mono text-sm font-bold text-stone-800" id="logic-b1">--</span>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="flex items-center space-x-4">
+                            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center font-bold text-stone-500 text-sm">2</div>
+                            <div class="flex-grow bg-stone-50 p-3 rounded border border-stone-200 flex justify-between">
+                                <span class="text-sm text-stone-700">Calc Threshold ($T_{VCC}$)</span>
+                                <span class="font-mono text-sm font-bold text-amber-600" id="logic-thresh">--</span>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="flex items-center space-x-4">
+                            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center font-bold text-stone-500 text-sm">3</div>
+                            <div class="flex-grow bg-stone-50 p-3 rounded border border-stone-200 flex justify-between">
+                                <span class="text-sm text-stone-700">Check Upper Beams ($B_{2..6}$)</span>
+                                <span class="font-mono text-sm font-bold text-stone-800" id="logic-check">--</span>
+                            </div>
+                        </div>
+
+                        <!-- Result -->
+                        <div id="logic-result-box" class="mt-6 p-4 rounded-lg border-2 border-dashed border-stone-300 text-center">
+                            <div class="text-xs text-stone-500 uppercase font-bold mb-1">Processing Result</div>
+                            <div class="text-lg font-bold text-stone-800" id="logic-outcome">Awaiting Data</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-stone-900 text-stone-400 py-6 mt-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs font-mono">
+            <p>INTERSOFT ELECTRONICS • RESEARCH & DEVELOPMENT</p>
+            <p class="mt-1">NGSP Data Analysis Toolkit v2.1 • Equation Rendering: MathJax</p>
+        </div>
+    </footer>
+
+    <!-- Logic Script -->
+    <script>
+        // --- State ---
+        const state = {
+            rcs: 60,
+            iso: 25,
+            duct: 1,
+            mode: 'off',
+            // Calculated
+            beams: [],
+            threshold: 0
+        };
+
+        // --- Chart Instance ---
+        let beamChart = null;
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initControls();
+            initChart();
+            updateSimulation();
+        });
+
+        function initControls() {
+            // Mapping inputs to state
+            const inputs = [
+                { id: 'in-rcs', key: 'rcs', disp: 'disp-rcs', unit: ' dBsm' },
+                { id: 'in-iso', key: 'iso', disp: 'disp-iso', unit: ' dB' },
+                { id: 'in-duct', key: 'duct', disp: 'disp-duct', unit: '', map: {1:'Standard', 2:'Surface', 3:'Super-R'} },
+                { id: 'in-mode', key: 'mode', disp: null, unit: '' }
+            ];
+
+            inputs.forEach(input => {
+                const el = document.getElementById(input.id);
+                el.addEventListener('input', (e) => {
+                    let val = e.target.value;
+                    
+                    // Specific parsing
+                    if (input.key === 'mode') {
+                        state.mode = val;
+                    } else {
+                        state[input.key] = parseInt(val);
+                    }
+
+                    // Display update
+                    if (input.disp) {
+                        const dispEl = document.getElementById(input.disp);
+                        if (input.map) {
+                            dispEl.innerText = input.map[state[input.key]];
+                        } else {
+                            dispEl.innerText = state[input.key] + input.unit;
+                        }
+                    }
+
+                    updateSimulation();
+                });
+            });
+        }
+
+        function calculatePhysics() {
+            // 1. Calculate Base Power in Beam 1 (Main Lobe)
+            // Model: P_rx ~ RCS + Propagation Factor (Ducting)
+            let ductGain = (state.duct - 1) * 6; // +0dB, +6dB, +12dB
+            let basePower = state.rcs - 30 + ductGain; // Normalized roughly to 0-100 scale for viz
+            
+            // 2. Determine VCC Threshold
+            // Threshold = MainBeam - Isolation + Margin
+            let margin = 0;
+            if (state.mode === 'conservative') margin = 5; // Harder to blank
+            if (state.mode === 'aggressive') margin = -5;  // Easier to blank
+            
+            // If VCC is OFF, threshold is effectively 0 or irrelevant, but for viz we calculate it
+            let vccThreshold = basePower - state.iso + margin;
+            state.threshold = vccThreshold;
+
+            // 3. Generate Beams
+            let beams = [];
+            
+            // Beam 1: The Source
+            beams.push({
+                id: 1,
+                power: basePower,
+                type: 'source'
+            });
+
+            // Beams 2-6: The Leakage (Ghosts)
+            for (let i = 2; i <= 6; i++) {
+                // Expected leakage power
+                let leakMean = basePower - state.iso;
+                // Add stochastic variation (scintillation/pattern nulls)
+                let noise = (Math.random() * 6) - 3; 
+                // Higher beams have slightly better natural isolation typically
+                let elevationLoss = (i - 1) * 1.5; 
+                
+                let pwr = leakMean + noise - elevationLoss;
+                
+                // Determine Status
+                let status = 'ghost'; // Default: it is a ghost
+                if (state.mode !== 'off') {
+                    if (pwr < vccThreshold) {
+                        status = 'blanked'; // Successfully identified and removed
+                    } else {
+                        status = 'punch'; // "Punch Through" - failed to blank
+                    }
+                }
+
+                beams.push({
+                    id: i,
+                    power: pwr,
+                    type: status
+                });
+            }
+
+            state.beams = beams;
+        }
+
+        function updateSimulation() {
+            calculatePhysics();
+            updateChart();
+            updateUI();
+        }
+
+        function updateUI() {
+            const b1 = state.beams[0];
+            const avgLeak = state.beams.slice(1).reduce((acc, b) => acc + b.power, 0) / 5;
+            const punchCount = state.beams.filter(b => b.type === 'punch').length;
+
+            // Update Left Panel Stats
+            document.getElementById('val-b1').innerText = b1.power.toFixed(1) + " dB";
+            document.getElementById('val-leak').innerText = avgLeak.toFixed(1) + " dB";
+            document.getElementById('val-punch').innerText = punchCount > 0 ? punchCount + " Beams" : "None";
+            if (punchCount > 0) document.getElementById('val-punch').classList.add('text-red-600');
+            else document.getElementById('val-punch').classList.remove('text-red-600');
+
+            // Update Logic Visualizer (Right Panel)
+            // Step 1
+            document.getElementById('logic-b1').innerText = `P = ${b1.power.toFixed(1)}`;
+            
+            // Step 2
+            let threshText = "N/A";
+            if (state.mode !== 'off') {
+                threshText = `${state.threshold.toFixed(1)} dB`;
+            }
+            document.getElementById('logic-thresh').innerText = threshText;
+
+            // Step 3
+            const blankedCount = state.beams.filter(b => b.type === 'blanked').length;
+            document.getElementById('logic-check').innerText = `Checking 5 Beams...`;
+
+            // Result Box
+            const resBox = document.getElementById('logic-result-box');
+            const resBadge = document.getElementById('badge-status');
+            const resOut = document.getElementById('logic-outcome');
+
+            if (state.mode === 'off') {
+                resBox.className = "mt-6 p-4 rounded-lg border-2 border-dashed border-stone-300 text-center bg-stone-50";
+                resBadge.className = "text-xs font-bold text-white bg-stone-400 px-2 py-1 rounded";
+                resBadge.innerText = "BYPASS";
+                resOut.innerText = "All Ghosts Passed (Raw)";
+            } else if (punchCount > 0) {
+                // Failure / Punch Through
+                resBox.className = "mt-6 p-4 rounded-lg border-2 border-dashed border-red-300 text-center bg-red-50";
+                resBadge.className = "text-xs font-bold text-white bg-red-500 px-2 py-1 rounded";
+                resBadge.innerText = "LEAKAGE";
+                resOut.innerText = `${punchCount} Beams exceeded Threshold`;
+            } else {
+                // Success
+                resBox.className = "mt-6 p-4 rounded-lg border-2 border-dashed border-emerald-300 text-center bg-emerald-50";
+                resBadge.className = "text-xs font-bold text-white bg-emerald-500 px-2 py-1 rounded";
+                resBadge.innerText = "CLEAN";
+                resOut.innerText = `Full Suppression (${blankedCount} Blanked)`;
+            }
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('beamChart').getContext('2d');
+            beamChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['B1 (Main)', 'B2', 'B3', 'B4', 'B5', 'B6'],
+                    datasets: [
+                        {
+                            label: 'Signal Power',
+                            data: [0,0,0,0,0,0],
+                            backgroundColor: [], // Dynamic
+                            borderRadius: 4,
+                            order: 2
+                        },
+                        {
+                            type: 'line',
+                            label: 'VCC Threshold',
+                            data: [0,0,0,0,0,0],
+                            borderColor: '#d97706', // Amber 600
+                            borderWidth: 2,
+                            borderDash: [6, 4],
+                            pointRadius: 0,
+                            order: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `${ctx.parsed.y.toFixed(1)} dB`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: { color: '#f5f5f4' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart() {
+            if (!beamChart) return;
+
+            const powers = state.beams.map(b => b.power);
+            const threshLine = state.beams.map((b, i) => i === 0 ? null : state.threshold);
+
+            // Dynamic Colors
+            const bgColors = state.beams.map(b => {
+                if (b.type === 'source') return '#44403c'; // Dark Stone
+                if (b.type === 'ghost') return '#a8a29e'; // Gray (VCC Off)
+                if (b.type === 'blanked') return '#10b981'; // Emerald (Success)
+                if (b.type === 'punch') return '#ef4444'; // Red (Fail)
+                return '#ccc';
+            });
+
+            beamChart.data.datasets[0].data = powers;
+            beamChart.data.datasets[0].backgroundColor = bgColors;
+
+            if (state.mode === 'off') {
+                beamChart.data.datasets[1].data = Array(6).fill(null);
+            } else {
+                beamChart.data.datasets[1].data = threshLine;
+            }
+
+            beamChart.update();
+        }
+
+    </script>
+</body>
+</html>
