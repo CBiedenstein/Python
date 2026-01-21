@@ -14,6 +14,11 @@ from PyQt6.QtCore import Qt, QTimer
 from dataclasses import dataclass
 from typing import Tuple, Optional
 
+from ui.styles import PLOT_COLORS
+
+# Get color scheme for plots
+COLORS = PLOT_COLORS['dark']
+
 
 @dataclass
 class ChirpParameters:
@@ -311,59 +316,82 @@ class ChirpGeneratorTab(QWidget):
         pg.setConfigOptions(antialias=True)
 
         self.plot_widget = pg.GraphicsLayoutWidget()
+        self.plot_widget.setBackground(COLORS['background'])
 
-        # Time Domain - Real Part
+        # Common styling
+        label_style = {'color': COLORS['foreground'], 'font-size': '10pt'}
+        title_style = {'color': COLORS['primary'], 'size': '11pt', 'bold': True}
+
+        # Time Domain - Real Part (In-Phase)
         self.p_time_real = self.plot_widget.addPlot(title="Time Domain - In-Phase (I)")
-        self.p_time_real.setLabel('left', "Amplitude")
-        self.p_time_real.setLabel('bottom', "Time", units='s')
+        self.p_time_real.setTitle("Time Domain - In-Phase (I)", **title_style)
+        self.p_time_real.setLabel('left', "Amplitude", **label_style)
+        self.p_time_real.setLabel('bottom', "Time", units='s', **label_style)
         self.p_time_real.showGrid(x=True, y=True, alpha=0.3)
-        self.curve_time_real = self.p_time_real.plot(pen=pg.mkPen('#00FF00', width=1))
+        self.p_time_real.getAxis('bottom').setPen(pg.mkPen(color=COLORS['grid']))
+        self.p_time_real.getAxis('left').setPen(pg.mkPen(color=COLORS['grid']))
+        self.curve_time_real = self.p_time_real.plot(pen=pg.mkPen(COLORS['primary'], width=1))
 
-        # Time Domain - Imaginary Part
+        # Time Domain - Imaginary Part (Quadrature)
         self.p_time_imag = self.plot_widget.addPlot(title="Time Domain - Quadrature (Q)")
-        self.p_time_imag.setLabel('left', "Amplitude")
-        self.p_time_imag.setLabel('bottom', "Time", units='s')
+        self.p_time_imag.setTitle("Time Domain - Quadrature (Q)", **title_style)
+        self.p_time_imag.setLabel('left', "Amplitude", **label_style)
+        self.p_time_imag.setLabel('bottom', "Time", units='s', **label_style)
         self.p_time_imag.showGrid(x=True, y=True, alpha=0.3)
-        self.curve_time_imag = self.p_time_imag.plot(pen=pg.mkPen('#FF6600', width=1))
+        self.p_time_imag.getAxis('bottom').setPen(pg.mkPen(color=COLORS['grid']))
+        self.p_time_imag.getAxis('left').setPen(pg.mkPen(color=COLORS['grid']))
+        self.curve_time_imag = self.p_time_imag.plot(pen=pg.mkPen(COLORS['tertiary'], width=1))
 
         self.plot_widget.nextRow()
 
-        # Frequency Domain
+        # Frequency Domain (Power Spectrum)
         self.p_freq = self.plot_widget.addPlot(title="Power Spectrum")
-        self.p_freq.setLabel('left', "Power", units='dB')
-        self.p_freq.setLabel('bottom', "Frequency", units='Hz')
+        self.p_freq.setTitle("Power Spectrum", **title_style)
+        self.p_freq.setLabel('left', "Power", units='dB', **label_style)
+        self.p_freq.setLabel('bottom', "Frequency", units='Hz', **label_style)
         self.p_freq.showGrid(x=True, y=True, alpha=0.3)
+        self.p_freq.getAxis('bottom').setPen(pg.mkPen(color=COLORS['grid']))
+        self.p_freq.getAxis('left').setPen(pg.mkPen(color=COLORS['grid']))
         self.curve_freq = self.p_freq.plot(
-            pen=pg.mkPen('#00FDFD', width=1.5),
+            pen=pg.mkPen(COLORS['secondary'], width=1.5),
             fillLevel=-150,
-            brush=(0, 255, 255, 50)
+            brush=(88, 166, 255, 50)  # Secondary color with alpha
         )
 
         # Instantaneous Frequency
         self.p_inst_freq = self.plot_widget.addPlot(title="Instantaneous Frequency")
-        self.p_inst_freq.setLabel('left', "Frequency", units='Hz')
-        self.p_inst_freq.setLabel('bottom', "Time", units='s')
+        self.p_inst_freq.setTitle("Instantaneous Frequency", **title_style)
+        self.p_inst_freq.setLabel('left', "Frequency", units='Hz', **label_style)
+        self.p_inst_freq.setLabel('bottom', "Time", units='s', **label_style)
         self.p_inst_freq.showGrid(x=True, y=True, alpha=0.3)
-        self.curve_inst_freq = self.p_inst_freq.plot(pen=pg.mkPen('#FF00FF', width=2))
+        self.p_inst_freq.getAxis('bottom').setPen(pg.mkPen(color=COLORS['grid']))
+        self.p_inst_freq.getAxis('left').setPen(pg.mkPen(color=COLORS['grid']))
+        self.curve_inst_freq = self.p_inst_freq.plot(pen=pg.mkPen(COLORS['accent1'], width=2))
 
         self.plot_widget.nextRow()
 
         # IQ Constellation
         self.p_iq = self.plot_widget.addPlot(title="IQ Constellation")
-        self.p_iq.setLabel('left', "Quadrature (Q)")
-        self.p_iq.setLabel('bottom', "In-Phase (I)")
+        self.p_iq.setTitle("IQ Constellation", **title_style)
+        self.p_iq.setLabel('left', "Quadrature (Q)", **label_style)
+        self.p_iq.setLabel('bottom', "In-Phase (I)", **label_style)
         self.p_iq.showGrid(x=True, y=True, alpha=0.5)
+        self.p_iq.getAxis('bottom').setPen(pg.mkPen(color=COLORS['grid']))
+        self.p_iq.getAxis('left').setPen(pg.mkPen(color=COLORS['grid']))
         self.p_iq.setAspectLocked(True)
         self.scatter_iq = pg.ScatterPlotItem(size=3, pen=pg.mkPen(None),
-                                              brush=pg.mkBrush(255, 255, 0, 100))
+                                              brush=pg.mkBrush(COLORS['tertiary']))
         self.p_iq.addItem(self.scatter_iq)
 
-        # Pulse Compression
+        # Pulse Compression (Matched Filter Output)
         self.p_compressed = self.plot_widget.addPlot(title="Matched Filter Output (Pulse Compression)")
-        self.p_compressed.setLabel('left', "Magnitude", units='dB')
-        self.p_compressed.setLabel('bottom', "Sample")
+        self.p_compressed.setTitle("Matched Filter Output (Pulse Compression)", **title_style)
+        self.p_compressed.setLabel('left', "Magnitude", units='dB', **label_style)
+        self.p_compressed.setLabel('bottom', "Sample", **label_style)
         self.p_compressed.showGrid(x=True, y=True, alpha=0.3)
-        self.curve_compressed = self.p_compressed.plot(pen=pg.mkPen('#00FF00', width=1.5))
+        self.p_compressed.getAxis('bottom').setPen(pg.mkPen(color=COLORS['grid']))
+        self.p_compressed.getAxis('left').setPen(pg.mkPen(color=COLORS['grid']))
+        self.curve_compressed = self.p_compressed.plot(pen=pg.mkPen(COLORS['primary'], width=1.5))
 
     def _connect_signals(self):
         """Connect widget signals."""

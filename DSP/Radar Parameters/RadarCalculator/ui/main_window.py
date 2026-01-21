@@ -24,6 +24,7 @@ from ui.widgets.waveform_panel import WaveformPanel
 from ui.plots.plot_manager import PlotManager
 from ui.simulation_tab import SimulationTab
 from ui.chirp_generator_tab import ChirpGeneratorTab
+from ui.site_survey_tab import SiteSurveyTab
 
 from core.radar_equations import RadarCalculator, RadarParameters, TargetScenario
 from core.waveforms import calculate_waveform_performance
@@ -302,6 +303,10 @@ class MainWindow(QMainWindow):
         self.chirp_tab = ChirpGeneratorTab()
         self.tab_widget.addTab(self.chirp_tab, "Chirp Generator")
 
+        # Site Survey tab
+        self.site_survey_tab = SiteSurveyTab()
+        self.tab_widget.addTab(self.site_survey_tab, "Site Survey")
+
         main_layout.addWidget(self.tab_widget)
 
         # Status bar
@@ -351,6 +356,10 @@ class MainWindow(QMainWindow):
         chirp_tab_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(2))
         view_menu.addAction(chirp_tab_action)
 
+        survey_tab_action = QAction("Site Survey Tab", self)
+        survey_tab_action.triggered.connect(lambda: self.tab_widget.setCurrentIndex(3))
+        view_menu.addAction(survey_tab_action)
+
         # Help menu
         help_menu = menubar.addMenu("&Help")
 
@@ -362,6 +371,7 @@ class MainWindow(QMainWindow):
         """Perform initial setup after window is shown."""
         self.calculator_tab.initial_setup()
         self.chirp_tab.initial_setup()
+        self.site_survey_tab.initial_setup()
 
     def _toggle_theme(self):
         """Toggle between dark and light themes."""
@@ -502,7 +512,7 @@ class MainWindow(QMainWindow):
             self,
             "About Radar Parameter Calculator",
             """<h2>Radar Parameter Calculator</h2>
-            <p>Version 2.1</p>
+            <p>Version 2.2</p>
             <p>A holistic radar performance analysis tool.</p>
             <p><b>Features:</b></p>
             <ul>
@@ -514,8 +524,13 @@ class MainWindow(QMainWindow):
                 <li>Unit conversion support</li>
                 <li>Live PPI track simulator</li>
                 <li>Aircraft and vessel target library</li>
-                <li><b>NEW:</b> FM Chirp waveform generator</li>
+                <li>FM Chirp waveform generator</li>
                 <li>IQ data export (complex64, int16, numpy)</li>
+                <li><b>NEW:</b> Site Survey with terrain analysis</li>
+                <li>SRTM elevation data auto-download</li>
+                <li>RF coverage mapping (LOS, FSPL, ITM)</li>
+                <li>2D/3D terrain visualization</li>
+                <li>GeoTIFF export for GIS integration</li>
             </ul>
             <p>Built with PyQt6 and pyqtgraph.</p>
             """

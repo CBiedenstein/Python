@@ -1,0 +1,39 @@
+flowchart LR
+    %% Analog Processing
+    A[6 Receive Beams] --> B[Down Conversion<br/>2.9 GHz → 32 MHz IF]
+    B --> C[Bandpass Filter]
+    C --> D[Analog STC Function]
+ 
+    %% Digital Processing Start
+    D --> E[ADC<br/>2.5 GSPS]
+    E --> F[RFDC I/Q DDC]
+    F --> G[Digital Beamforming]
+ 
+    %% Per Beam Processing
+    G --> H[Per Beam<br/>Coherent Detection]
+    H --> I[MTI]
+    I --> J[Doppler Clutter<br/>Cancelling]
+    J --> K[Pulse Compression/<br/>Matched Filter]
+    K --> L[CFAR]
+ 
+    %% Target Processing
+    L --> M[Height Estimates/<br/>RCS Estimates]
+    M --> N[Target Queuing]
+    N --> O{Passes<br/>Queue Test?}
+ 
+    %% Output Path
+    O -->|Yes| P[Register as Target]
+    O -->|No| Q[Discard]
+    P --> R[Fused with<br/>Secondary IFF]
+    R --> S[OPUS Display]
+ 
+    %% Styling
+    classDef analog fill:#ffcccc,stroke:#cc0000,stroke-width:2px
+    classDef digital fill:#ccccff,stroke:#0000cc,stroke-width:2px
+    classDef decision fill:#ffffcc,stroke:#cccc00,stroke-width:2px
+    classDef output fill:#ccffcc,stroke:#00cc00,stroke-width:2px
+ 
+    class A,B,C,D analog
+    class E,F,G,H,I,J,K,L,M,N digital
+    class O decision
+    class P,R,S output
